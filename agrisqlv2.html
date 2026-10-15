@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🌾 AgriSQL — Farm Database Simulator</title>
+<style>
+  :root{
+    --g900:#0b2e1f; --g800:#14452f; --g700:#1b5e20; --g600:#2d6a4f;
+    --g500:#40916c; --g400:#52b788; --g300:#95d5b2; --g100:#d8f3dc;
+    --gold:#e9c46a; --pink:#e07a5f; --blue:#5e7fa3;
+    --bg:#f4f9f0; --card:#fff; --soft:#f7fbf5; --line:#dcebda; --line2:#eef5ec;
+    --ink:#16281d; --muted:#6c8a78; --chip:#fff; --input:#fbfdf9; --zebra:#fafdf8; --hover:#d8f3dc;
+    --headbg:linear-gradient(90deg,#d8f3dc,#eef8ea); --headtx:#1b5e20;
+    --num:#0f5132; --shadow:0 6px 20px rgba(11,46,31,.10);
+  }
+  [data-theme="dark"]{
+    --bg:#0c1a13; --card:#13261b; --soft:#102017; --line:#24402f; --line2:#1b3224;
+    --ink:#e3f2e8; --muted:#8fb09c; --chip:#16301f; --input:#0f2017; --zebra:#112219; --hover:#1f4a33;
+    --headbg:linear-gradient(90deg,#17331f,#13261b); --headtx:#95d5b2;
+    --num:#7fe0a8; --shadow:0 6px 20px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; font-family:'Segoe UI',system-ui,-apple-system,sans-serif; color:var(--ink);
+    background-color:var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(149,213,178,.28), transparent 42%),
+      radial-gradient(circle at 88% 2%, rgba(233,196,106,.18), transparent 38%),
+      repeating-linear-gradient(135deg, rgba(45,106,79,.04) 0 14px, transparent 14px 28px);
+    min-height:100vh; transition:background-color .25s,color .25s;
+  }
+  header{
+    background:linear-gradient(120deg,var(--g900) 0%,var(--g700) 45%,var(--g500) 100%);
+    color:#eaf7ee; padding:20px 26px 46px; box-shadow:var(--shadow); position:relative; overflow:hidden;
+  }
+  header::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:radial-gradient(circle at 82% 30%,rgba(255,255,255,.10),transparent 22%),radial-gradient(circle at 92% 75%,rgba(255,255,255,.07),transparent 18%);}
+  .brand{display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:relative;z-index:1;}
+  .brand .logo{font-size:2rem;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35));}
+  .brand h1{margin:0;font-size:1.55rem;letter-spacing:.4px;font-weight:700;}
+  .brand h1 span{color:var(--gold);}
+  .brand p{margin:2px 0 0;font-size:.84rem;opacity:.85;}
+  .header-stats{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .stat-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:6px 14px;font-size:.76rem;letter-spacing:.3px;}
+  .stat-pill b{color:var(--gold);}
+  .icon-btn{
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;
+    width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:1rem;transition:.15s;
+  }
+  .icon-btn:hover{background:rgba(255,255,255,.28);}
+  .dev-badge{position:absolute;right:26px;bottom:12px;z-index:2;background:rgba(255,255,255,.14);border:1px solid rgba(233,196,106,.55);color:var(--gold);font-size:.74rem;font-weight:600;letter-spacing:.4px;padding:5px 14px;border-radius:999px;backdrop-filter:blur(3px);}
+  .modified-pill{
+    position:absolute;right:26px;bottom:46px;z-index:3;background:linear-gradient(135deg,#e07a5f,#c85f42);color:#fff;
+    font-size:.72rem;font-weight:700;letter-spacing:.5px;padding:5px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.35);
+    box-shadow:0 3px 10px rgba(0,0,0,.22);animation:pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{box-shadow:0 3px 10px rgba(0,0,0,.22);}50%{box-shadow:0 3px 16px rgba(224,122,95,.7);}}
+
+  .layout{display:grid;grid-template-columns:310px minmax(0,1fr);gap:18px;padding:0 22px 40px;max-width:1700px;margin:-26px auto 0;align-items:start;position:relative;z-index:2;}
+  @media (max-width:960px){
+    .layout{grid-template-columns:1fr;margin-top:-20px;}
+    .dev-badge,.modified-pill{position:static;display:inline-block;margin-top:10px;}
+    header{padding:20px 20px 40px;}
+    .brand{flex-direction:column;align-items:flex-start;}
+    .header-stats{margin-left:0;}
+    .sidebar{order:2;}
+  }
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+  .card-head{background:var(--headbg);border-bottom:1px solid var(--line);padding:10px 14px;font-weight:700;font-size:.8rem;letter-spacing:.6px;text-transform:uppercase;color:var(--headtx);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .card-head .hint-mini{margin-left:auto;font-size:.68rem;font-weight:500;color:var(--muted);letter-spacing:.2px;text-transform:none;}
+  .card-head .mini-btn{margin-left:auto;font-size:.68rem;font-weight:600;text-transform:none;letter-spacing:0;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:2px 8px;cursor:pointer;}
+  .card-head .mini-btn:hover{background:var(--hover);}
+
+  .sidebar{display:flex;flex-direction:column;gap:16px;}
+  .search-box{padding:8px 8px 0;}
+  .search-box input{width:100%;padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;background:var(--input);color:var(--ink);font:inherit;font-size:.78rem;outline:none;}
+  .search-box input:focus{border-color:var(--g400);}
+  .schema-list{max-height:380px;overflow:auto;padding:8px;}
+  .schema-item{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden;background:var(--soft);}
+  .schema-item .sh{display:flex;align-items:center;background:var(--headbg);border-bottom:1px solid var(--line);}
+  .schema-item .sh .tname{flex:1;background:transparent;border:0;padding:9px 12px;text-align:left;font:inherit;font-weight:700;font-size:.83rem;color:var(--headtx);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .schema-item .sh .tname:hover{background:var(--hover);}
+  .schema-item .sh .peek{background:transparent;border:0;border-left:1px solid var(--line);padding:9px 10px;cursor:pointer;color:var(--headtx);font-size:.8rem;}
+  .schema-item .sh .peek:hover{background:var(--hover);}
+  .rows-badge{background:var(--g500);color:#fff;border-radius:999px;padding:1px 9px;font-size:.68rem;font-weight:600;}
+  .col-chips{display:flex;flex-wrap:wrap;gap:5px;padding:9px 10px;}
+  .col-chips span{background:var(--chip);border:1px solid var(--line);color:var(--g500);border-radius:6px;padding:2px 7px;font-size:.68rem;font-family:ui-monospace,Consolas,monospace;cursor:pointer;transition:.15s;}
+  [data-theme="dark"] .col-chips span{color:var(--g300);}
+  .col-chips span:hover{background:var(--g300);border-color:var(--g400);color:#0b2e1f;}
+
+  .tabs{display:flex;gap:4px;padding:8px 8px 0;flex-wrap:wrap;}
+  .tabs button{font:inherit;font-size:.7rem;font-weight:600;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:3px 11px;cursor:pointer;}
+  .tabs button.on{background:var(--g600);border-color:var(--g600);color:#fff;}
+  .samples,.history{padding:8px;display:flex;flex-direction:column;gap:7px;max-height:340px;overflow:auto;}
+  .samples button,.history button{
+    text-align:left;font-family:ui-monospace,Consolas,monospace;font-size:.69rem;line-height:1.35;
+    background:var(--soft);border:1px solid var(--line);border-left:3px solid var(--g400);
+    border-radius:8px;padding:7px 10px;color:var(--ink);cursor:pointer;transition:.15s;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .samples button:hover,.history button:hover{background:var(--hover);border-left-color:var(--g700);transform:translateX(2px);}
+  .samples button.write,.history button.write{border-left-color:var(--pink);}
+  .samples button.write.danger{border-left-color:#c0392b;}
+  .history button.fail{border-left-color:#c0392b;opacity:.75;}
+  .history .empty{font-size:.74rem;color:var(--muted);padding:6px 4px;}
+
+  .workspace{display:flex;flex-direction:column;gap:16px;min-width:0;}
+  .editor-body{padding:14px;}
+  textarea#sql{
+    width:100%;min-height:150px;resize:vertical;font-family:ui-monospace,Consolas,"Courier New",monospace;font-size:.86rem;line-height:1.6;
+    padding:14px;border:2px solid var(--line);border-radius:10px;background:var(--input);color:var(--ink);outline:none;transition:.2s;tab-size:2;
+  }
+  textarea#sql:focus{border-color:var(--g400);box-shadow:0 0 0 4px rgba(82,183,136,.16);}
+  .editor-meta{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);margin-top:6px;gap:10px;flex-wrap:wrap;}
+  .actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center;}
+  .btn{font:inherit;font-weight:600;font-size:.83rem;border:0;border-radius:9px;padding:9px 16px;cursor:pointer;transition:.18s;display:inline-flex;align-items:center;gap:7px;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important;}
+  .btn-primary{background:linear-gradient(135deg,var(--g600),var(--g500));color:#fff;box-shadow:0 4px 12px rgba(45,106,79,.30);padding:10px 22px;}
+  .btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 16px rgba(45,106,79,.42);}
+  .btn-ghost{background:var(--card);color:var(--headtx);border:1.5px solid var(--g300);}
+  [data-theme="dark"] .btn-ghost{border-color:var(--line);}
+  .btn-ghost:hover:not(:disabled){background:var(--hover);}
+  .btn-warn{background:var(--card);color:#c0392b;border:1.5px solid #f5c2be;}
+  [data-theme="dark"] .btn-warn{border-color:#5a2a26;color:#ff9b90;}
+  .btn-warn:hover:not(:disabled){background:rgba(224,122,95,.14);}
+  .btn-schema{background:linear-gradient(135deg,#5e7fa3,#7897b5);color:#fff;box-shadow:0 4px 12px rgba(94,127,163,.30);}
+  .btn-schema:hover{transform:translateY(-1px);}
+  .btn-undo{background:linear-gradient(135deg,#d68a35,#b06a1c);color:#fff;}
+  .hint{font-size:.72rem;color:var(--muted);margin-left:auto;}
+  .hint kbd{background:var(--soft);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;font-family:inherit;font-size:.68rem;}
+
+  .status{padding:10px 14px;font-size:.8rem;display:none;border-radius:10px;border:1px solid transparent;}
+  .status.show{display:block;}
+  .status.ok{background:#e8f7ec;border-color:#b7e2c4;color:#1b5e20;}
+  .status.err{background:#fdeceb;border-color:#f5c2be;color:#a3281c;}
+  .status.write{background:#fff4e6;border-color:#f5cda8;color:#8a4b16;}
+  [data-theme="dark"] .status.ok{background:#12301f;border-color:#235a37;color:#9be5b6;}
+  [data-theme="dark"] .status.err{background:#3a1a17;border-color:#6b2c26;color:#ffb1a8;}
+  [data-theme="dark"] .status.write{background:#3a2a14;border-color:#6b4a22;color:#f5c88f;}
+  .status code{background:rgba(0,0,0,.08);padding:1px 6px;border-radius:4px;font-family:ui-monospace,monospace;font-size:.76rem;}
+
+  .result-tools{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;}
+  .result-tools button,.result-tools select{font:inherit;font-size:.7rem;font-weight:600;text-transform:none;letter-spacing:0;background:var(--card);border:1px solid var(--line);color:var(--headtx);border-radius:6px;padding:3px 9px;cursor:pointer;}
+  .result-tools button:hover:not(:disabled){background:var(--hover);}
+  .result-tools button.on{background:var(--g600);color:#fff;border-color:var(--g600);}
+  .result-tools button:disabled{opacity:.4;cursor:not-allowed;}
+  .table-wrap{overflow:auto;max-height:560px;}
+  table.result{border-collapse:collapse;width:100%;font-size:.79rem;font-family:ui-monospace,Consolas,monospace;}
+  table.result thead th{position:sticky;top:0;z-index:2;background:linear-gradient(180deg,var(--g700),var(--g600));color:#eaf7ee;text-align:left;padding:9px 12px;font-weight:600;white-space:nowrap;border-right:1px solid rgba(255,255,255,.12);font-size:.75rem;letter-spacing:.3px;cursor:pointer;user-select:none;}
+  table.result thead th:hover{filter:brightness(1.15);}
+  table.result thead th .arrow{opacity:.85;margin-left:4px;font-size:.65rem;}
+  table.result thead th.rownum{cursor:default;width:44px;text-align:right;}
+  table.result thead th.insert-head{background:linear-gradient(180deg,#2d6a4f,#40916c);}
+  table.result thead th.update-head{background:linear-gradient(180deg,#b06a1c,#d68a35);}
+  table.result thead th.delete-head{background:linear-gradient(180deg,#8a2b20,#c0392b);}
+  table.result tbody td{padding:7px 12px;border-bottom:1px solid var(--line2);white-space:nowrap;color:var(--ink);max-width:340px;overflow:hidden;text-overflow:ellipsis;}
+  table.result tbody td.rownum{color:var(--muted);text-align:right;font-size:.7rem;}
+  table.result tbody tr:nth-child(even){background:var(--zebra);}
+  table.result tbody tr:hover{background:var(--hover);}
+  td.num{text-align:right;color:var(--num);font-weight:600;}
+  td.null{color:var(--muted);font-style:italic;opacity:.7;}
+  .empty-msg{padding:34px 20px;text-align:center;color:var(--muted);font-size:.88rem;}
+  .empty-msg .big{font-size:2rem;display:block;margin-bottom:8px;}
+  .result-foot{padding:9px 14px;font-size:.75rem;color:var(--muted);background:var(--soft);border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;}
+  .result-foot.write-foot{background:rgba(214,138,53,.1);color:#b06a1c;}
+  .pager{display:flex;gap:6px;align-items:center;}
+  .pager button{font:inherit;font-size:.72rem;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:2px 9px;cursor:pointer;}
+  .pager button:disabled{opacity:.4;cursor:not-allowed;}
+  .pager button:hover:not(:disabled){background:var(--hover);}
+
+  .chart{padding:16px 18px;max-height:560px;overflow:auto;}
+  .bar-row{display:grid;grid-template-columns:minmax(90px,200px) 1fr 90px;gap:10px;align-items:center;margin-bottom:7px;font-size:.76rem;}
+  .bar-row .lbl{text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);}
+  .bar-track{background:var(--line2);border-radius:6px;height:18px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--g500),var(--g300));transition:width .5s cubic-bezier(.2,.8,.2,1);}
+  .bar-row .val{font-family:ui-monospace,monospace;color:var(--num);font-weight:600;}
+  .chart-title{font-size:.72rem;color:var(--muted);margin-bottom:12px;}
+
+  .toast-wrap{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:2000;}
+  .toast{background:var(--g900);color:#eaf7ee;padding:10px 16px;border-radius:10px;font-size:.8rem;box-shadow:0 8px 24px rgba(0,0,0,.35);border-left:4px solid var(--g400);animation:tin .25s ease-out;max-width:320px;}
+  .toast.warn{border-left-color:var(--gold);}
+  @keyframes tin{from{transform:translateX(30px);opacity:0;}to{transform:none;opacity:1;}}
+
+  .schema-modal-backdrop{position:fixed;inset:0;background:rgba(11,46,31,.55);backdrop-filter:blur(5px);z-index:1000;display:none;align-items:center;justify-content:center;padding:22px;}
+  .schema-modal-backdrop.show{display:flex;animation:backdropIn .2s ease-out;}
+  @keyframes backdropIn{from{opacity:0;}to{opacity:1;}}
+  .schema-modal{background:var(--card);border-radius:16px;box-shadow:0 25px 70px rgba(0,0,0,.4);width:100%;max-width:1300px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--line);animation:modalIn .22s cubic-bezier(.2,.9,.3,1.1);}
+  @keyframes modalIn{from{transform:scale(.96) translateY(10px);opacity:0;}to{transform:none;opacity:1;}}
+  .schema-modal-head{display:flex;align-items:center;gap:14px;padding:18px 22px;background:linear-gradient(120deg,var(--g900),var(--g700) 60%,var(--g500));color:#eaf7ee;}
+  .schema-modal-head .m-icon{width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;}
+  .schema-modal-head h2{margin:0;font-size:1.15rem;}
+  .schema-modal-head p{margin:3px 0 0;font-size:.78rem;opacity:.85;}
+  .schema-modal-head .m-close{margin-left:auto;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#eaf7ee;width:36px;height:36px;border-radius:10px;cursor:pointer;transition:.15s;}
+  .schema-modal-head .m-close:hover{background:rgba(255,255,255,.28);transform:rotate(90deg);}
+  .schema-modal-body{padding:18px 22px 22px;overflow-y:auto;flex:1;background:var(--soft);}
+  .schema-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;}
+  .sum-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;transition:.15s;}
+  .sum-card:hover{border-color:var(--g400);transform:translateY(-2px);}
+  .sum-card .s-icon{font-size:1.25rem;}
+  .sum-card .s-name{font-family:ui-monospace,monospace;font-weight:700;color:var(--headtx);font-size:.82rem;margin:4px 0 6px;}
+  .sum-card .s-stats{display:flex;gap:12px;font-size:.72rem;color:var(--muted);}
+  .sum-card .s-stats b{color:var(--headtx);}
+  .schema-table-wrap{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:calc(92vh - 380px);}
+  table.schema-full{width:100%;border-collapse:collapse;font-size:.79rem;}
+  table.schema-full thead th{position:sticky;top:0;z-index:3;background:linear-gradient(180deg,#2d6a4f,#40916c);color:#eaf7ee;text-align:left;padding:10px 14px;font-size:.72rem;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;}
+  table.schema-full tbody td{padding:8px 14px;border-bottom:1px solid var(--line2);vertical-align:middle;color:var(--ink);}
+  table.schema-full tbody tr.group-start td{border-top:2px solid var(--g300);}
+  table.schema-full tbody tr:hover{background:var(--hover);}
+  table.schema-full tbody tr.tbl-alt{background:var(--zebra);}
+  .tbl-tag{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--g700),var(--g500));color:#fff;padding:4px 11px;border-radius:7px;font-family:ui-monospace,monospace;font-size:.74rem;font-weight:700;white-space:nowrap;}
+  .tbl-tag .tbl-rows{background:rgba(255,255,255,.22);padding:1px 6px;border-radius:5px;font-size:.66rem;}
+  .sch-col{font-family:ui-monospace,monospace;font-weight:700;color:var(--headtx);font-size:.82rem;cursor:pointer;}
+  .sch-col:hover{text-decoration:underline;}
+  .sch-type{font-family:ui-monospace,monospace;font-size:.74rem;color:var(--blue);background:rgba(94,127,163,.12);padding:2px 8px;border-radius:5px;white-space:nowrap;}
+  .sch-key{display:inline-block;padding:2px 8px;border-radius:5px;font-size:.66rem;font-weight:700;}
+  .key-pk{background:#fef3d9;color:#8a6511;border:1px solid #f2d896;}
+  .key-fk{background:#e3f0fe;color:#1e5490;border:1px solid #b8d5f5;}
+  .key-none{color:var(--muted);opacity:.5;}
+  .sch-null{font-size:.75rem;text-align:center;font-weight:600;}
+  .sch-null.yes{color:var(--g500);} .sch-null.no{color:var(--pink);}
+  .sch-sample{font-family:ui-monospace,monospace;font-size:.72rem;color:var(--muted);background:var(--soft);border:1px solid var(--line);border-radius:5px;padding:3px 8px;display:inline-block;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .schema-modal-foot{display:flex;align-items:center;gap:12px;padding:12px 22px;background:var(--soft);border-top:1px solid var(--line);font-size:.75rem;color:var(--muted);}
+  .schema-modal-foot b{color:var(--headtx);}
+  .schema-modal-foot .btn{margin-left:auto;}
+
+  footer{text-align:center;padding:18px 16px 22px;font-size:.74rem;color:var(--muted);}
+  .dev-credit{display:inline-block;margin-top:10px;padding:7px 18px;background:var(--headbg);border:1px solid var(--g300);border-radius:999px;color:var(--headtx);font-weight:600;font-size:.82rem;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-track{background:var(--line2);}
+  ::-webkit-scrollbar-thumb{background:var(--g300);border-radius:6px;border:2px solid var(--line2);}
+  :focus-visible{outline:2px solid var(--g400);outline-offset:2px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">🌾</div>
+    <div>
+      <h1>Agri<span>SQL</span> — Farm Database Simulator</h1>
+      <p>Query &amp; modify a live agricultural dataset — SELECT · INSERT · UPDATE · DELETE</p>
+    </div>
+    <div class="header-stats">
+      <span id="headerStats" style="display:contents"></span>
+      <button class="icon-btn" id="themeBtn" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+  <div class="modified-pill" id="modifiedBadge" style="display:none;">⚠ Data Modified</div>
+  <div class="dev-badge">👨‍💻 Engr. Lee-Mher Binay-an</div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="card">
+      <div class="card-head">🗂️ Database Schema <span class="hint-mini" id="schemaRowTotal"></span></div>
+      <div class="search-box"><input id="tblFilter" type="search" placeholder="Filter tables or columns…" aria-label="Filter tables or columns"></div>
+      <div class="schema-list" id="schemaList"></div>
+    </div>
+    <div class="card">
+      <div class="card-head">💡 Sample Queries</div>
+      <div class="tabs" id="sampleTabs">
+        <button class="on" data-k="all">All</button><button data-k="select">Read</button>
+        <button data-k="insert">Insert</button><button data-k="update">Update</button><button data-k="delete">Delete</button>
+      </div>
+      <div class="samples" id="sampleList"></div>
+    </div>
+    <div class="card">
+      <div class="card-head">🕘 History <button class="mini-btn" id="clearHistBtn">Clear</button></div>
+      <div class="history" id="historyList"></div>
+    </div>
+  </aside>
+
+  <section class="workspace">
+    <div class="card">
+      <div class="card-head">⌨️ SQL Console <span class="hint-mini">Multiple statements allowed · separate with ;</span></div>
+      <div class="editor-body">
+        <textarea id="sql" spellcheck="false" aria-label="SQL editor">SELECT region, COUNT(*) AS total_farms, ROUND(AVG(farm_size_ha), 2) AS avg_size_ha
+FROM farms
+GROUP BY region
+ORDER BY total_farms DESC;</textarea>
+        <div class="editor-meta"><span id="editorCount"></span><span>Select text to run only the selection</span></div>
+        <div class="actions">
+          <button class="btn btn-primary" id="runBtn">▶ Run</button>
+          <button class="btn btn-ghost" id="formatBtn" title="Format SQL">✨ Format</button>
+          <button class="btn btn-ghost" id="clearBtn">✕ Clear</button>
+          <button class="btn btn-undo" id="undoBtn" disabled title="Undo last INSERT / UPDATE / DELETE">↶ Undo</button>
+          <button class="btn btn-schema" id="schemaBtn">📋 Schema</button>
+          <button class="btn btn-warn" id="resetBtn">↺ Reset</button>
+          <span class="hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> run · <kbd>Ctrl</kbd>+<kbd>↑↓</kbd> history</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+
+    <div class="card">
+      <div class="card-head">📊 Results
+        <div class="result-tools" id="resultTools" style="display:none;">
+          <button id="viewTableBtn" class="on">Table</button>
+          <button id="viewChartBtn">Chart</button>
+          <select id="pageSize" aria-label="Rows per page"><option>25</option><option selected>50</option><option>100</option><option>250</option></select>
+          <button id="copyBtn">Copy</button>
+          <button id="csvBtn">⬇ CSV</button>
+        </div>
+      </div>
+      <div id="results"></div>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div>AgriSQL · a client-side SQL simulator · SELECT · INSERT · UPDATE · DELETE · saved in your browser</div>
+  <div class="dev-credit">👨‍💻 Developed by <b>Engr. Lee-Mher Binay-an</b></div>
+</footer>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<div class="schema-modal-backdrop" id="schemaModal" role="dialog" aria-modal="true" aria-labelledby="schemaModalTitle">
+  <div class="schema-modal">
+    <div class="schema-modal-head">
+      <div class="m-icon">📋</div>
+      <div><h2 id="schemaModalTitle">Database Schema Overview</h2><p>Click a table card to preview it · click a column name to insert it in the editor</p></div>
+      <button class="m-close" id="schemaClose" title="Close" aria-label="Close">✕</button>
+    </div>
+    <div class="schema-modal-body">
+      <div class="schema-summary" id="schemaSummary"></div>
+      <div class="schema-table-wrap">
+        <table class="schema-full">
+          <thead><tr>
+            <th style="width:190px;">Table</th><th style="width:40px;">#</th><th style="width:200px;">Column</th>
+            <th style="width:130px;">Data Type</th><th style="width:60px;">Key</th><th style="width:70px;text-align:center;">Nullable</th><th>Sample Value</th>
+          </tr></thead>
+          <tbody id="schemaFullBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="schema-modal-foot">
+      <span id="schemaFootStats"></span>
+      <button class="btn btn-ghost" id="schemaCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   1. SEEDED RANDOM HELPERS
+   ============================================================ */
+let _seed = 20240517;
+function rnd(){ _seed = (_seed * 1664525 + 1013904223) % 4294967296; return _seed / 4294967296; }
+function ri(a,b){ return a + Math.floor(rnd()*(b-a+1)); }
+function rf(a,b,d){ d = (d===undefined)?2:d; return +(a + rnd()*(b-a)).toFixed(d); }
+function pick(arr){ return arr[Math.floor(rnd()*arr.length)]; }
+function pad(n,w){ return String(n).padStart(w,'0'); }
+function dateStr(y1,y2){ return ri(y1,y2)+'-'+pad(ri(1,12),2)+'-'+pad(ri(1,28),2); }
+function addDays(ds,n){ const d = new Date(ds); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+
+/* ============================================================
+   2. REFERENCE DATA
+   ============================================================ */
+const REGION_DATA = {
+  'Central Luzon':['Nueva Ecija','Pampanga','Bulacan','Tarlac'],
+  'Cagayan Valley':['Isabela','Cagayan','Nueva Vizcaya','Quirino'],
+  'Ilocos Region':['Pangasinan','La Union','Ilocos Sur','Ilocos Norte'],
+  'Southern Tagalog':['Laguna','Batangas','Quezon','Cavite'],
+  'Bicol Region':['Camarines Sur','Albay','Sorsogon','Masbate'],
+  'Western Visayas':['Iloilo','Negros Occidental','Capiz','Antique'],
+  'Central Visayas':['Cebu','Bohol','Negros Oriental','Siquijor'],
+  'Northern Mindanao':['Bukidnon','Misamis Oriental','Lanao del Norte','Camiguin'],
+  'Davao Region':['Davao del Sur','Davao del Norte','Davao de Oro','Davao Oriental'],
+  'SOCCSKSARGEN':['South Cotabato','Cotabato','Sultan Kudarat','Sarangani']
+};
+const REGION_NAMES = Object.keys(REGION_DATA);
+const FARM_TYPES  = ['Crop Farm','Livestock Farm','Mixed Farm','Poultry Farm','Orchard','Aquaculture'];
+const SOIL_TYPES  = ['Loam','Clay Loam','Sandy Loam','Silt Loam','Clay','Sandy','Volcanic Loam'];
+const IRRIGATION  = ['Drip Irrigation','Sprinkler','Flood Irrigation','Furrow','Rainfed','Center Pivot'];
+const CERTS       = ['Organic Certified','GAP Certified','None','Fair Trade','GlobalG.A.P.'];
+const FARM_STATUS = ['Active','Active','Active','Active','Inactive','Under Review'];
+const FIRST = ['Juan','Maria','Jose','Ana','Pedro','Rosa','Carlos','Luz','Miguel','Elena','Ramon','Teresa','Andres','Carmen','Felipe','Nena','Rogelio','Lourdes','Ernesto','Gloria'];
+const LAST  = ['Santos','Reyes','Cruz','Bautista','Garcia','Mendoza','Torres','Flores','Ramos','Gonzales','Aquino','Villanueva','Del Rosario','Navarro','Domingo'];
+const FARM_PREFIX = ['Sunrise','Greenfield','Golden Harvest','Riverside','Highland','Valley','Sunny','Terra','Harvest','Bloom','Evergreen','Meadow'];
+const FARM_SUFFIX = ['Farm','Agro Farm','Plantation','Ranch','Farmstead','Agriventures','Family Farm'];
+
+const CROP_DATA = [
+  {n:'Rice',c:'Cereal',v:['NSIC Rc222','NSIC Rc160','IR64','Jasmine 85'],p:[18,28]},
+  {n:'Corn',c:'Cereal',v:['Pioneer 30T80','NK6410','Sweet Corn','Yellow Dent'],p:[12,22]},
+  {n:'Sugarcane',c:'Industrial',v:['Phil 97-3933','VMC 86-550','Phil 2005-0493'],p:[2.5,4.5]},
+  {n:'Coconut',c:'Industrial',v:['Laguna Tall','Catigan Green Dwarf','Tacunan Dwarf'],p:[8,16]},
+  {n:'Banana',c:'Fruit',v:['Cavendish','Lakatan','Latundan','Saba'],p:[15,35]},
+  {n:'Mango',c:'Fruit',v:['Carabao','Katchamita','Pico'],p:[45,90]},
+  {n:'Cassava',c:'Root Crop',v:['KU-50','Rayong 72','Lakan 1'],p:[4,9]},
+  {n:'Sweet Potato',c:'Root Crop',v:['PSB Sp-21','Super Baguio','Yellow Violet'],p:[10,20]},
+  {n:'Tomato',c:'Vegetable',v:['Diamante Max','Apollo','Athena'],p:[25,60]},
+  {n:'Eggplant',c:'Vegetable',v:['Morena','Mistisa','Bilog'],p:[30,55]},
+  {n:'Cabbage',c:'Vegetable',v:['Rare Ball','Scorpio','Wonder Ball'],p:[25,50]},
+  {n:'Onion',c:'Vegetable',v:['Red Creole','Yellow Granex','Batanes'],p:[40,90]},
+  {n:'Coffee',c:'Industrial',v:['Robusta','Arabica','Liberica','Excelsa'],p:[90,220]},
+  {n:'Cacao',c:'Industrial',v:['Criollo','Forastero','Trinitario'],p:[120,260]},
+  {n:'Pineapple',c:'Fruit',v:['Smooth Cayenne','Queen','MD-2'],p:[20,40]},
+  {n:'Peanut',c:'Legume',v:['NSIC Pn-14','UPL Pn-10','BPI Pn-9'],p:[35,70]}
+];
+const LIVESTOCK_DATA = {
+  'Cattle':{breeds:['Brahman','Angus','Hereford','Holstein-Friesian'],w:[250,650],feed:['Forage','Silage','Concentrate','Pasture']},
+  'Carabao':{breeds:['Murrah','Philippine Carabao','Crossbred'],w:[300,700],feed:['Forage','Pasture','Silage']},
+  'Swine':{breeds:['Large White','Landrace','Duroc','Pietrain'],w:[50,180],feed:['Commercial Pellet','Concentrate','Mixed Ration']},
+  'Goat':{breeds:['Boer','Anglo-Nubian','Saanen'],w:[20,75],feed:['Forage','Pasture','Mixed Ration']},
+  'Chicken':{breeds:['Rhode Island Red','Broiler','Native','Layer'],w:[1,3.5],feed:['Commercial Pellet','Mixed Ration','Concentrate']},
+  'Duck':{breeds:['Pekin','Muscovy','Khaki Campbell'],w:[1.5,4.5],feed:['Commercial Pellet','Forage','Mixed Ration']}
+};
+const ANIMAL_TYPES = Object.keys(LIVESTOCK_DATA);
+const VETS   = ['Dr. A. Salazar','Dr. M. Rivera','Dr. J. Fernandez','Dr. L. Tan','Dr. R. Ocampo'];
+const HEALTH = ['Healthy','Healthy','Healthy','Healthy','Vaccinated','Under Treatment','Quarantine','Recovering'];
+const BUYERS = ['Sunrise Agri Trading','Metro Fresh Market','Pacific Grains Corp.','Green Valley Cooperative','Golden Harvest Exports','FarmLink Traders','Island Foods Inc.','AgriPlus Buying Station','Southfield Mills','Nature Best Retail'];
+const MARKET_LOC = ['Local Wet Market','Trading Post','Supermarket','Exporter','Processor','Cooperative'];
+const PAYMENTS   = ['Cash','Bank Transfer','Check','E-Wallet','Credit (30 days)'];
+const DELIVERY   = ['Delivered','Delivered','Pending','In Transit','Cancelled'];
+const GRADES     = ['Premium','Grade A','Grade B','Grade C'];
+const ZONES      = ['Zone A','Zone B','Zone C','Zone D','North Field','South Field','East Field','West Field'];
+const SOIL_NOTES = ['Optimal','Needs liming','Low moisture','High salinity','Nutrient deficient','Good tilth','Waterlogged','Monitor closely'];
+
+/* ============================================================
+   3. TABLE GENERATORS
+   ============================================================ */
+function genFarms(n){
+  const rows = [];
+  for(let i=1;i<=n;i++){
+    const region = pick(REGION_NAMES);
+    rows.push({
+      farm_id:i, farm_name:pick(FARM_PREFIX)+' '+pick(FARM_SUFFIX), owner_name:pick(FIRST)+' '+pick(LAST),
+      region:region, province:pick(REGION_DATA[region]),
+      municipality:pick(['Poblacion','San Isidro','Sta. Cruz','San Jose','Sto. Niño','Malinao','Bagong Silang','Sto. Domingo']),
+      farm_type:pick(FARM_TYPES), farm_size_ha:rf(0.5,120,2), soil_type:pick(SOIL_TYPES), irrigation_type:pick(IRRIGATION),
+      latitude:rf(5.5,18.5,6), longitude:rf(120.2,126.5,6), established_year:ri(1965,2022),
+      certification:pick(CERTS), annual_yield_tons:rf(5,1500,2), status:pick(FARM_STATUS)
+    });
+  }
+  return rows;
+}
+function genCrops(n, farmCount){
+  const rows = [];
+  for(let i=1;i<=n;i++){
+    const cd = pick(CROP_DATA), planted = dateStr(2019,2024), area = rf(0.3,25,2);
+    const exp = Math.round(area*ri(800,6000)), act = Math.round(exp*rf(0.55,1.28,3));
+    rows.push({
+      crop_id:i, farm_id:ri(1,farmCount), crop_name:cd.n, variety:pick(cd.v), category:cd.c,
+      season:pick(['Wet Season','Dry Season']), planting_date:planted, harvest_date:addDays(planted,ri(70,300)),
+      area_planted_ha:area, growth_stage:pick(['Seedling','Vegetative','Flowering','Maturity','Harvested']),
+      expected_yield_kg:exp, actual_yield_kg:act, water_used_mm:ri(200,1500), fertilizer_kg:rf(10,900,1),
+      pesticide_kg:rf(0,60,2), market_price_per_kg:rf(cd.p[0],cd.p[1],2), soil_ph:rf(4.2,7.9,2)
+    });
+  }
+  return rows;
+}
+function genLivestock(n, farmCount){
+  const rows = [];
+  for(let i=1;i<=n;i++){
+    const type = pick(ANIMAL_TYPES), d = LIVESTOCK_DATA[type], birth = dateStr(2016,2024);
+    const ageMonths = Math.max(1, Math.round((Date.now()-new Date(birth).getTime())/(1000*60*60*24*30.44)));
+    const milky = (type==='Cattle'||type==='Carabao'||type==='Goat') ? rf(0,28,1) : 0;
+    rows.push({
+      animal_id:i, farm_id:ri(1,farmCount), tag_number:'TAG-'+pad(ri(1,99999),5), animal_type:type, breed:pick(d.breeds),
+      gender:pick(['Male','Female','Female']), birth_date:birth, age_months:ageMonths, weight_kg:rf(d.w[0],d.w[1],1),
+      health_status:pick(HEALTH), feed_type:pick(d.feed), daily_feed_kg:rf(0.3,14,2), milk_yield_l:milky,
+      vaccination_date:dateStr(2023,2025), veterinarian:pick(VETS), pen_number:'PEN-'+pad(ri(1,120),3)
+    });
+  }
+  return rows;
+}
+function genSales(n, cropCount, farmCount){
+  const rows = [];
+  for(let i=1;i<=n;i++){
+    const qty = rf(50,12000,1), price = rf(8,180,2), gross = +(qty*price).toFixed(2), disc = rf(0,12,2);
+    rows.push({
+      sale_id:i, crop_id:ri(1,cropCount), farm_id:ri(1,farmCount), buyer_name:pick(BUYERS), market_location:pick(MARKET_LOC),
+      sale_date:dateStr(2022,2025), quantity_kg:qty, unit_price:price, gross_amount:gross, discount_pct:disc,
+      net_amount:+(gross*(1-disc/100)).toFixed(2), payment_method:pick(PAYMENTS), delivery_status:pick(DELIVERY),
+      invoice_no:'INV-'+pad(ri(1,999999),6), currency:pick(['PHP','PHP','PHP','PHP','USD']), quality_grade:pick(GRADES)
+    });
+  }
+  return rows;
+}
+function genSoilReadings(n, farmCount){
+  const rows = [];
+  for(let i=1;i<=n;i++){
+    rows.push({
+      reading_id:i, farm_id:ri(1,farmCount), reading_date:dateStr(2023,2025), ph_level:rf(4.0,8.2,2),
+      nitrogen_ppm:ri(5,180), phosphorus_ppm:ri(3,95), potassium_ppm:ri(20,420), moisture_pct:rf(5,72,1),
+      temperature_c:rf(16,39,1), humidity_pct:rf(30,98,1), rainfall_mm:rf(0,180,1), organic_matter_pct:rf(0.4,8.5,2),
+      salinity_ds_m:rf(0.05,4.5,2), sensor_id:'SNS-'+pad(ri(1,80),3), field_zone:pick(ZONES), notes:pick(SOIL_NOTES)
+    });
+  }
+  return rows;
+}
+
+/* ============================================================
+   4. DATABASE
+   ============================================================ */
+const DB = { tables: {} };
+const COUNTS = { farms:250, crops:1000, livestock:1000, sales:1200, soil_readings:1000 };
+const ORIGINAL_TOTAL = 4450;
+
+function buildFreshDatabase(){
+  _seed = 20240517;
+  DB.tables = {
+    farms:{ columns:['farm_id','farm_name','owner_name','region','province','municipality','farm_type','farm_size_ha','soil_type','irrigation_type','latitude','longitude','established_year','certification','annual_yield_tons','status'], rows:genFarms(COUNTS.farms) },
+    crops:{ columns:['crop_id','farm_id','crop_name','variety','category','season','planting_date','harvest_date','area_planted_ha','growth_stage','expected_yield_kg','actual_yield_kg','water_used_mm','fertilizer_kg','pesticide_kg','market_price_per_kg','soil_ph'], rows:genCrops(COUNTS.crops,COUNTS.farms) },
+    livestock:{ columns:['animal_id','farm_id','tag_number','animal_type','breed','gender','birth_date','age_months','weight_kg','health_status','feed_type','daily_feed_kg','milk_yield_l','vaccination_date','veterinarian','pen_number'], rows:genLivestock(COUNTS.livestock,COUNTS.farms) },
+    sales:{ columns:['sale_id','crop_id','farm_id','buyer_name','market_location','sale_date','quantity_kg','unit_price','gross_amount','discount_pct','net_amount','payment_method','delivery_status','invoice_no','currency','quality_grade'], rows:genSales(COUNTS.sales,COUNTS.crops,COUNTS.farms) },
+    soil_readings:{ columns:['reading_id','farm_id','reading_date','ph_level','nitrogen_ppm','phosphorus_ppm','potassium_ppm','moisture_pct','temperature_c','humidity_pct','rainfall_mm','organic_matter_pct','salinity_ds_m','sensor_id','field_zone','notes'], rows:genSoilReadings(COUNTS.soil_readings,COUNTS.farms) }
+  };
+}
+buildFreshDatabase();
+
+function resolveTable(name){
+  const t = DB.tables[String(name).toLowerCase()];
+  if(!t) throw new Error("Unknown table '" + name + "'. Available tables: " + Object.keys(DB.tables).join(', '));
+  return t;
+}
+
+/* ============================================================
+   5. SCHEMA META
+   ============================================================ */
+const SCHEMA_META = {
+  farms:{icon:'🚜',types:{farm_id:'INT PK',farm_name:'VARCHAR(80)',owner_name:'VARCHAR(60)',region:'VARCHAR(40)',province:'VARCHAR(40)',municipality:'VARCHAR(60)',farm_type:'VARCHAR(30)',farm_size_ha:'DECIMAL(6,2)',soil_type:'VARCHAR(20)',irrigation_type:'VARCHAR(30)',latitude:'DECIMAL(9,6)',longitude:'DECIMAL(9,6)',established_year:'INT',certification:'VARCHAR(30)',annual_yield_tons:'DECIMAL(8,2)',status:'VARCHAR(15)'},fks:{farm_id:'PK'}},
+  crops:{icon:'🌱',types:{crop_id:'INT PK',farm_id:'INT FK',crop_name:'VARCHAR(40)',variety:'VARCHAR(40)',category:'VARCHAR(20)',season:'VARCHAR(15)',planting_date:'DATE',harvest_date:'DATE',area_planted_ha:'DECIMAL(5,2)',growth_stage:'VARCHAR(20)',expected_yield_kg:'INT',actual_yield_kg:'INT',water_used_mm:'INT',fertilizer_kg:'DECIMAL(6,1)',pesticide_kg:'DECIMAL(5,2)',market_price_per_kg:'DECIMAL(6,2)',soil_ph:'DECIMAL(3,2)'},fks:{crop_id:'PK',farm_id:'FK → farms.farm_id'}},
+  livestock:{icon:'🐄',types:{animal_id:'INT PK',farm_id:'INT FK',tag_number:'VARCHAR(10)',animal_type:'VARCHAR(20)',breed:'VARCHAR(40)',gender:'VARCHAR(10)',birth_date:'DATE',age_months:'INT',weight_kg:'DECIMAL(6,1)',health_status:'VARCHAR(20)',feed_type:'VARCHAR(30)',daily_feed_kg:'DECIMAL(5,2)',milk_yield_l:'DECIMAL(5,1)',vaccination_date:'DATE',veterinarian:'VARCHAR(40)',pen_number:'VARCHAR(10)'},fks:{animal_id:'PK',farm_id:'FK → farms.farm_id'}},
+  sales:{icon:'💰',types:{sale_id:'INT PK',crop_id:'INT FK',farm_id:'INT FK',buyer_name:'VARCHAR(60)',market_location:'VARCHAR(30)',sale_date:'DATE',quantity_kg:'DECIMAL(8,1)',unit_price:'DECIMAL(6,2)',gross_amount:'DECIMAL(10,2)',discount_pct:'DECIMAL(5,2)',net_amount:'DECIMAL(10,2)',payment_method:'VARCHAR(20)',delivery_status:'VARCHAR(15)',invoice_no:'VARCHAR(12)',currency:'VARCHAR(5)',quality_grade:'VARCHAR(10)'},fks:{sale_id:'PK',crop_id:'FK → crops.crop_id',farm_id:'FK → farms.farm_id'}},
+  soil_readings:{icon:'🧪',types:{reading_id:'INT PK',farm_id:'INT FK',reading_date:'DATE',ph_level:'DECIMAL(3,2)',nitrogen_ppm:'INT',phosphorus_ppm:'INT',potassium_ppm:'INT',moisture_pct:'DECIMAL(4,1)',temperature_c:'DECIMAL(4,1)',humidity_pct:'DECIMAL(4,1)',rainfall_mm:'DECIMAL(5,1)',organic_matter_pct:'DECIMAL(4,2)',salinity_ds_m:'DECIMAL(4,2)',sensor_id:'VARCHAR(10)',field_zone:'VARCHAR(15)',notes:'VARCHAR(30)'},fks:{reading_id:'PK',farm_id:'FK → farms.farm_id'}}
+};
+function getKeyInfo(tableName, colName){
+  const meta = SCHEMA_META[tableName];
+  const raw = meta && meta.fks && meta.fks[colName];
+  if(!raw) return { key:'', ref:'' };
+  if(raw === 'PK') return { key:'PK', ref:'' };
+  return { key:'FK', ref: raw.replace(/^FK\s*→\s*/, '') };
+}
+function inferNullable(tableName, colName){
+  const t = DB.tables[tableName];
+  if(!t || !t.rows.length) return true;
+  if(getKeyInfo(tableName, colName).key === 'PK') return false;
+  return t.rows.slice(0,200).some(r => r[colName] === null || r[colName] === undefined);
+}
+
+/* ============================================================
+   6. STORAGE, HISTORY, THEME, UNDO
+   ============================================================ */
+const STORAGE_KEY = 'agrisql_db_v1', HIST_KEY = 'agrisql_history_v1', THEME_KEY = 'agrisql_theme_v1';
+let dbModified = false;
+
+function saveToStorage(){
+  try {
+    const payload = { version:1, savedAt:new Date().toISOString(), tables:{} };
+    Object.keys(DB.tables).forEach(t => { payload.tables[t] = { rows: DB.tables[t].rows }; });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    return true;
+  } catch(e){ toast('Could not save to browser storage (quota?).','warn'); return false; }
+}
+function loadFromStorage(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return false;
+    const payload = JSON.parse(raw);
+    if(!payload || !payload.tables) return false;
+    let restored = false;
+    Object.keys(DB.tables).forEach(t => {
+      if(payload.tables[t] && Array.isArray(payload.tables[t].rows)){ DB.tables[t].rows = payload.tables[t].rows; restored = true; }
+    });
+    return restored;
+  } catch(e){ return false; }
+}
+function clearStorage(){ try { localStorage.removeItem(STORAGE_KEY); } catch(e){} }
+
+function lsGet(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } }
+function lsSet(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+
+/* undo stack: snapshots of single tables (session only) */
+const undoStack = [];
+function takeSnap(tableName){ return { table: tableName, rows: JSON.stringify(DB.tables[tableName].rows) }; }
+function pushUndo(snap){ undoStack.push(snap); if(undoStack.length > 25) undoStack.shift(); updateUndoBtn(); }
+function restoreSnap(snap){ DB.tables[snap.table].rows = JSON.parse(snap.rows); }
+
+if(loadFromStorage()){ dbModified = true; }
+
+/* ============================================================
+   7. TOKENIZER
+   ============================================================ */
+const KEYWORDS = new Set(['SELECT','FROM','WHERE','GROUP','BY','HAVING','ORDER','LIMIT','OFFSET','JOIN','INNER','LEFT','RIGHT','OUTER','ON','AS','AND','OR','NOT','IN','LIKE','BETWEEN','IS','NULL','ASC','DESC','DISTINCT','TRUE','FALSE','INSERT','INTO','VALUES','UPDATE','SET','DELETE']);
+
+function tokenize(s){
+  const tokens = []; let i = 0;
+  while(i < s.length){
+    const c = s[i];
+    if(/\s/.test(c)){ i++; continue; }
+    if(c === '-' && s[i+1] === '-'){ while(i < s.length && s[i] !== '\n') i++; continue; }
+    if(c === '/' && s[i+1] === '*'){ i += 2; while(i < s.length && !(s[i] === '*' && s[i+1] === '/')) i++; i += 2; continue; }
+    if(c === "'"){
+      let v = ''; i++; let closed = false;
+      while(i < s.length){
+        if(s[i] === "'"){ if(s[i+1] === "'"){ v += "'"; i += 2; } else { i++; closed = true; break; } }
+        else v += s[i++];
+      }
+      if(!closed) throw new Error("Unterminated string literal — missing closing quote (')");
+      tokens.push({type:'str', value:v}); continue;
+    }
+    if(/[0-9]/.test(c)){
+      let j = i;
+      while(j < s.length && /[0-9]/.test(s[j])) j++;
+      if(s[j] === '.'){ j++; while(j < s.length && /[0-9]/.test(s[j])) j++; }
+      tokens.push({type:'num', value:parseFloat(s.slice(i,j))}); i = j; continue;
+    }
+    if(/[A-Za-z_]/.test(c)){
+      let j = i;
+      while(j < s.length && /[A-Za-z0-9_]/.test(s[j])) j++;
+      tokens.push({type:'id', value:s.slice(i,j)}); i = j; continue;
+    }
+    const two = s.substr(i,2);
+    if(two === '<=' || two === '>=' || two === '<>' || two === '!='){ tokens.push({type:'op', value:two}); i += 2; continue; }
+    if('=<>+-*/%'.indexOf(c) >= 0){ tokens.push({type:'op', value:c}); i++; continue; }
+    if('(),.;'.indexOf(c) >= 0){ tokens.push({type:'punc', value:c}); i++; continue; }
+    throw new Error("Unexpected character '" + c + "' near position " + i);
+  }
+  tokens.push({type:'eof', value:null});
+  return tokens;
+}
+
+/* split a script into statements (respects strings & comments) */
+function splitStatements(src){
+  const out = []; let cur = '', inStr = false;
+  for(let i=0;i<src.length;i++){
+    const ch = src[i];
+    if(!inStr && ch === '-' && src[i+1] === '-'){ while(i < src.length && src[i] !== '\n') i++; cur += '\n'; continue; }
+    if(!inStr && ch === '/' && src[i+1] === '*'){ i += 2; while(i < src.length && !(src[i] === '*' && src[i+1] === '/')) i++; i++; continue; }
+    if(ch === "'") inStr = !inStr;
+    if(ch === ';' && !inStr){ if(cur.trim()) out.push(cur.trim()); cur = ''; continue; }
+    cur += ch;
+  }
+  if(cur.trim()) out.push(cur.trim());
+  return out;
+}
+
+/* ============================================================
+   8. PARSER
+   ============================================================ */
+class Parser {
+  constructor(tokens){ this.toks = tokens; this.i = 0; }
+  peek(k){ return this.toks[this.i + (k||0)]; }
+  next(){ return this.toks[this.i++]; }
+  atKw(kw){ const t = this.peek(); return t.type === 'id' && t.value.toUpperCase() === kw; }
+  eatKw(kw){ if(this.atKw(kw)){ this.i++; return true; } return false; }
+  expectKw(kw){ if(!this.eatKw(kw)){ const t = this.peek(); throw new Error("Expected " + kw + " but found '" + (t.value === null ? 'end of query' : t.value) + "'"); } }
+  atPunc(p){ const t = this.peek(); return t.type === 'punc' && t.value === p; }
+  eatPunc(p){ if(this.atPunc(p)){ this.i++; return true; } return false; }
+  expectPunc(p){ if(!this.eatPunc(p)){ const t = this.peek(); throw new Error("Expected '" + p + "' but found '" + (t.value === null ? 'end of query' : t.value) + "'"); } }
+  atStar(){ const t = this.peek(); return (t.type === 'op' || t.type === 'punc') && t.value === '*'; }
+
+  parse(){
+    const t = this.peek();
+    if(t.type !== 'id') throw new Error("Expected a SQL statement");
+    const kw = t.value.toUpperCase(); let ast;
+    if(kw === 'SELECT') ast = this.parseSelect();
+    else if(kw === 'INSERT') ast = this.parseInsert();
+    else if(kw === 'UPDATE') ast = this.parseUpdate();
+    else if(kw === 'DELETE') ast = this.parseDelete();
+    else throw new Error("Unsupported statement '" + t.value + "'. Supported: SELECT, INSERT, UPDATE, DELETE.");
+    this.eatPunc(';');
+    if(this.peek().type !== 'eof') throw new Error("Unexpected token '" + this.peek().value + "' after end of statement");
+    return ast;
+  }
+  parseSelect(){
+    this.expectKw('SELECT');
+    const distinct = this.eatKw('DISTINCT');
+    const cols = [];
+    do { cols.push(this.parseSelectItem()); } while(this.eatPunc(','));
+    this.expectKw('FROM');
+    const from = this.parseTableRef();
+    const joins = [];
+    for(;;){
+      let jtype = null;
+      if(this.atKw('JOIN')){ this.i++; jtype = 'INNER'; }
+      else if(this.atKw('INNER') && this.peek(1).type === 'id' && this.peek(1).value.toUpperCase() === 'JOIN'){ this.i += 2; jtype = 'INNER'; }
+      else if(this.atKw('LEFT')){ this.i++; this.eatKw('OUTER'); this.expectKw('JOIN'); jtype = 'LEFT'; }
+      else break;
+      const tbl = this.parseTableRef();
+      this.expectKw('ON');
+      joins.push({ type:jtype, table:tbl, on:this.parseExpr() });
+    }
+    let where = null; if(this.eatKw('WHERE')) where = this.parseExpr();
+    let groupBy = []; if(this.eatKw('GROUP')){ this.expectKw('BY'); groupBy = this.parseExprList(); }
+    let having = null; if(this.eatKw('HAVING')) having = this.parseExpr();
+    const orderBy = [];
+    if(this.eatKw('ORDER')){
+      this.expectKw('BY');
+      do {
+        const e = this.parseExpr(); let dir = 'ASC';
+        if(this.eatKw('ASC')) dir = 'ASC'; else if(this.eatKw('DESC')) dir = 'DESC';
+        orderBy.push({ expr:e, dir:dir });
+      } while(this.eatPunc(','));
+    }
+    let limit = null, offset = 0;
+    if(this.eatKw('LIMIT')){
+      const t = this.next(); if(t.type !== 'num') throw new Error('LIMIT expects a number');
+      limit = t.value;
+      if(this.eatKw('OFFSET')){ const o = this.next(); if(o.type !== 'num') throw new Error('OFFSET expects a number'); offset = o.value; }
+    }
+    return { type:'select', distinct, cols, from, joins, where, groupBy, having, orderBy, limit, offset };
+  }
+  parseExprList(){ const l = []; do { l.push(this.parseExpr()); } while(this.eatPunc(',')); return l; }
+  parseTableRef(){
+    const t = this.next();
+    if(t.type !== 'id') throw new Error("Expected a table name but found '" + t.value + "'");
+    let alias = t.value;
+    if(this.eatKw('AS')){ const a = this.next(); if(a.type !== 'id') throw new Error('Expected alias after AS'); alias = a.value; }
+    else if(this.peek().type === 'id' && !KEYWORDS.has(this.peek().value.toUpperCase())) alias = this.next().value;
+    return { name:t.value, alias:alias };
+  }
+  parseSelectItem(){
+    if(this.atStar()){ this.i++; return { expr:{ type:'star', qualifier:null }, alias:null }; }
+    const expr = this.parseExpr(); let alias = null;
+    if(this.eatKw('AS')){ const a = this.next(); if(a.type !== 'id') throw new Error('Expected alias after AS'); alias = a.value; }
+    else if(this.peek().type === 'id' && !KEYWORDS.has(this.peek().value.toUpperCase())) alias = this.next().value;
+    return { expr, alias };
+  }
+  parseInsert(){
+    this.expectKw('INSERT'); this.expectKw('INTO');
+    const tbl = this.parseTableRef(); let cols = null;
+    if(this.atPunc('(')){
+      this.i++; cols = [];
+      do { const t = this.next(); if(t.type !== 'id') throw new Error("Expected column name in INSERT column list"); cols.push(t.value); } while(this.eatPunc(','));
+      this.expectPunc(')');
+    }
+    this.expectKw('VALUES');
+    const rows = [];
+    do {
+      this.expectPunc('(');
+      const vals = [];
+      if(!this.atPunc(')')){ do { vals.push(this.parseExpr()); } while(this.eatPunc(',')); }
+      this.expectPunc(')'); rows.push(vals);
+    } while(this.eatPunc(','));
+    return { type:'insert', table:tbl, columns:cols, rows };
+  }
+  parseUpdate(){
+    this.expectKw('UPDATE');
+    const tbl = this.parseTableRef();
+    this.expectKw('SET');
+    const assignments = [];
+    do {
+      const t = this.next();
+      if(t.type !== 'id') throw new Error("Expected a column name after SET");
+      if(!(this.peek().type === 'op' && this.peek().value === '=')) throw new Error("Expected '=' after column '" + t.value + "' in SET clause");
+      this.i++;
+      assignments.push({ col:t.value, expr:this.parseExpr() });
+    } while(this.eatPunc(','));
+    let where = null; if(this.eatKw('WHERE')) where = this.parseExpr();
+    return { type:'update', table:tbl, assignments, where };
+  }
+  parseDelete(){
+    this.expectKw('DELETE'); this.expectKw('FROM');
+    const tbl = this.parseTableRef(); let where = null;
+    if(this.eatKw('WHERE')) where = this.parseExpr();
+    return { type:'delete', table:tbl, where };
+  }
+  parseExpr(){ return this.parseOr(); }
+  parseOr(){ let l = this.parseAnd(); while(this.eatKw('OR')) l = { type:'bin', op:'OR', left:l, right:this.parseAnd() }; return l; }
+  parseAnd(){ let l = this.parseNot(); while(this.eatKw('AND')) l = { type:'bin', op:'AND', left:l, right:this.parseNot() }; return l; }
+  parseNot(){ if(this.eatKw('NOT')) return { type:'un', op:'NOT', arg:this.parseNot() }; return this.parseComparison(); }
+  parseComparison(){
+    let left = this.parseAdditive();
+    for(;;){
+      if(this.eatKw('IS')){ const neg = this.eatKw('NOT'); this.expectKw('NULL'); left = { type:'isnull', arg:left, neg }; continue; }
+      let neg = false;
+      if(this.atKw('NOT')){
+        const n1 = this.peek(1);
+        if(n1.type === 'id' && ['IN','LIKE','BETWEEN'].indexOf(n1.value.toUpperCase()) >= 0){ this.i++; neg = true; }
+      }
+      if(this.eatKw('IN')){
+        this.expectPunc('(');
+        const list = [];
+        if(!this.atPunc(')')){ do { list.push(this.parseExpr()); } while(this.eatPunc(',')); }
+        this.expectPunc(')');
+        left = { type:'in', arg:left, list, neg }; continue;
+      }
+      if(this.eatKw('LIKE')){ left = { type:'like', arg:left, pattern:this.parseAdditive(), neg }; continue; }
+      if(this.eatKw('BETWEEN')){
+        const lo = this.parseAdditive(); this.expectKw('AND'); const hi = this.parseAdditive();
+        left = { type:'between', arg:left, lo, hi, neg }; continue;
+      }
+      const t = this.peek();
+      if(t.type === 'op' && ['=','<','>','<=','>=','<>','!='].indexOf(t.value) >= 0){
+        this.i++; left = { type:'bin', op:t.value, left, right:this.parseAdditive() }; continue;
+      }
+      break;
+    }
+    return left;
+  }
+  parseAdditive(){
+    let l = this.parseMultiplicative();
+    while(this.peek().type === 'op' && (this.peek().value === '+' || this.peek().value === '-')){
+      const op = this.next().value; l = { type:'bin', op, left:l, right:this.parseMultiplicative() };
+    }
+    return l;
+  }
+  parseMultiplicative(){
+    let l = this.parseUnary();
+    while(this.peek().type === 'op' && ['*','/','%'].indexOf(this.peek().value) >= 0){
+      const op = this.next().value; l = { type:'bin', op, left:l, right:this.parseUnary() };
+    }
+    return l;
+  }
+  parseUnary(){
+    const t = this.peek();
+    if(t.type === 'op' && (t.value === '-' || t.value === '+')){ this.i++; return { type:'un', op:t.value, arg:this.parseUnary() }; }
+    return this.parsePrimary();
+  }
+  parsePrimary(){
+    const t = this.peek();
+    if(t.type === 'num'){ this.i++; return { type:'num', value:t.value }; }
+    if(t.type === 'str'){ this.i++; return { type:'str', value:t.value }; }
+    if(t.type === 'punc' && t.value === '('){ this.i++; const e = this.parseExpr(); this.expectPunc(')'); return e; }
+    if(t.type === 'id'){
+      const up = t.value.toUpperCase();
+      if(up === 'NULL'){ this.i++; return { type:'null' }; }
+      if(up === 'TRUE' || up === 'FALSE'){ this.i++; return { type:'bool', value: up === 'TRUE' }; }
+      this.i++;
+      if(this.atPunc('(')){
+        this.i++;
+        const distinct = this.eatKw('DISTINCT'); const args = [];
+        if(!this.atPunc(')')){
+          do {
+            if(this.atStar()){ this.i++; args.push({ type:'star', qualifier:null }); }
+            else args.push(this.parseExpr());
+          } while(this.eatPunc(','));
+        }
+        this.expectPunc(')');
+        return { type:'func', name:up, args, distinct };
+      }
+      let name = t.value;
+      if(this.atPunc('.')){
+        this.i++;
+        if(this.atStar()){ this.i++; return { type:'star', qualifier:name }; }
+        const t2 = this.next();
+        if(t2.type !== 'id') throw new Error("Expected column name after '" + name + ".'");
+        name = name + '.' + t2.value;
+      }
+      return { type:'col', name };
+    }
+    throw new Error("Unexpected token '" + (t.value === null ? 'end of query' : t.value) + "' in expression");
+  }
+}
+
+/* ============================================================
+   9. EXPRESSION EVALUATION
+   ============================================================ */
+const AGG_FUNCS = new Set(['COUNT','SUM','AVG','MIN','MAX']);
+function truthy(v){ if(v == null) return false; if(typeof v === 'boolean') return v; if(typeof v === 'number') return v !== 0; return String(v).length > 0; }
+function num(v){ if(v == null) return 0; const n = typeof v === 'number' ? v : parseFloat(v); return isNaN(n) ? 0 : n; }
+function looseEq(a,b){
+  if(a == null || b == null) return false;
+  if(typeof a === 'number' && typeof b === 'number') return a === b;
+  const na = parseFloat(a), nb = parseFloat(b);
+  if(!isNaN(na) && !isNaN(nb) && String(a).trim() === String(na) && String(b).trim() === String(nb)) return na === nb;
+  return String(a).toLowerCase() === String(b).toLowerCase();
+}
+function cmpVals(a,b){
+  if(a == null){ return b == null ? 0 : -1; }
+  if(b == null) return 1;
+  if(typeof a === 'number' && typeof b === 'number') return a - b;
+  const na = parseFloat(a), nb = parseFloat(b);
+  if(!isNaN(na) && !isNaN(nb) && String(a).trim() === String(na) && String(b).trim() === String(nb)) return na - nb;
+  const sa = String(a).toLowerCase(), sb = String(b).toLowerCase();
+  return sa < sb ? -1 : sa > sb ? 1 : 0;
+}
+function ctxLookup(ctx, name){
+  if(!ctx) return undefined;
+  if(name.indexOf('.') >= 0) return ctx[name];
+  if(name in ctx) return ctx[name];
+  const srcs = ctx.__src || [];
+  for(let i=0;i<srcs.length;i++){ const k = srcs[i] + '.' + name; if(k in ctx) return ctx[k]; }
+  return undefined;
+}
+function evalExpr(e, ctx, group){
+  switch(e.type){
+    case 'num': case 'str': case 'bool': return e.value;
+    case 'null': return null;
+    case 'star': return 1;
+    case 'col': return ctxLookup(ctx, e.name);
+    case 'un': {
+      if(e.op === 'NOT') return !truthy(evalExpr(e.arg, ctx, group));
+      const v = evalExpr(e.arg, ctx, group);
+      return e.op === '-' ? -num(v) : +num(v);
+    }
+    case 'isnull': { const v = evalExpr(e.arg, ctx, group), n = (v == null); return e.neg ? !n : n; }
+    case 'in': {
+      const v = evalExpr(e.arg, ctx, group); let found = false;
+      for(let i=0;i<e.list.length;i++){ if(looseEq(v, evalExpr(e.list[i], ctx, group))){ found = true; break; } }
+      return e.neg ? !found : found;
+    }
+    case 'between': {
+      const v = num(evalExpr(e.arg, ctx, group)), lo = num(evalExpr(e.lo, ctx, group)), hi = num(evalExpr(e.hi, ctx, group));
+      const r = v >= lo && v <= hi; return e.neg ? !r : r;
+    }
+    case 'like': {
+      const v = evalExpr(e.arg, ctx, group), p = evalExpr(e.pattern, ctx, group);
+      if(!e._rx || e._rxSrc !== p){
+        e._rx = new RegExp('^' + String(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*').replace(/_/g, '.') + '$', 'i');
+        e._rxSrc = p;
+      }
+      const r = e._rx.test(v == null ? '' : String(v));
+      return e.neg ? !r : r;
+    }
+    case 'bin': return evalBin(e, ctx, group);
+    case 'func': return evalFunc(e, ctx, group);
+  }
+  return null;
+}
+function evalBin(e, ctx, group){
+  const op = e.op.toUpperCase();
+  if(op === 'AND') return truthy(evalExpr(e.left, ctx, group)) && truthy(evalExpr(e.right, ctx, group));
+  if(op === 'OR')  return truthy(evalExpr(e.left, ctx, group)) || truthy(evalExpr(e.right, ctx, group));
+  const a = evalExpr(e.left, ctx, group), b = evalExpr(e.right, ctx, group);
+  switch(op){
+    case '=': return looseEq(a,b);
+    case '<>': case '!=': return !looseEq(a,b);
+    case '<': return cmpVals(a,b) < 0;
+    case '>': return cmpVals(a,b) > 0;
+    case '<=': return cmpVals(a,b) <= 0;
+    case '>=': return cmpVals(a,b) >= 0;
+    case '+': return (typeof a === 'string' || typeof b === 'string') ? String(a) + String(b) : num(a) + num(b);
+    case '-': return num(a) - num(b);
+    case '*': return num(a) * num(b);
+    case '/': return num(b) === 0 ? null : num(a) / num(b);
+    case '%': return num(b) === 0 ? null : num(a) % num(b);
+  }
+  throw new Error("Unsupported operator '" + e.op + "'");
+}
+function evalFunc(e, ctx, group){
+  const name = e.name;
+  if(AGG_FUNCS.has(name)){
+    const rows = group || (ctx ? [ctx] : []);
+    if(name === 'COUNT'){
+      if(e.args.length === 0 || e.args[0].type === 'star') return rows.length;
+      const vals = [];
+      rows.forEach(r => { const v = evalExpr(e.args[0], r, null); if(v != null) vals.push(v); });
+      if(e.distinct) return new Set(vals.map(v => typeof v + ':' + String(v).toLowerCase())).size;
+      return vals.length;
+    }
+    if(!e.args.length) throw new Error(name + '() needs an argument');
+    let vals = [];
+    rows.forEach(r => { const v = evalExpr(e.args[0], r, null); if(v != null) vals.push(v); });
+    if(e.distinct){
+      const seen = new Set(), u = [];
+      vals.forEach(v => { const k = typeof v + ':' + String(v).toLowerCase(); if(!seen.has(k)){ seen.add(k); u.push(v); } });
+      vals = u;
+    }
+    if(!vals.length) return null;
+    switch(name){
+      case 'SUM': return +vals.reduce((a,b)=>a+num(b),0).toFixed(6);
+      case 'AVG': return +(vals.reduce((a,b)=>a+num(b),0)/vals.length).toFixed(6);
+      case 'MIN': return vals.reduce((a,b)=> cmpVals(a,b) <= 0 ? a : b);
+      case 'MAX': return vals.reduce((a,b)=> cmpVals(a,b) >= 0 ? a : b);
+    }
+  }
+  const a = e.args.map(x => x.type === 'star' ? null : evalExpr(x, ctx, group));
+  switch(name){
+    case 'ROUND': { if(a[0] == null) return null; const f = Math.pow(10, a.length > 1 ? num(a[1]) : 0); return Math.round(num(a[0]) * f) / f; }
+    case 'ABS': return a[0]==null?null:Math.abs(num(a[0]));
+    case 'CEIL': case 'CEILING': return a[0]==null?null:Math.ceil(num(a[0]));
+    case 'FLOOR': return a[0]==null?null:Math.floor(num(a[0]));
+    case 'SQRT': return a[0]==null?null:+Math.sqrt(Math.max(0,num(a[0]))).toFixed(6);
+    case 'POWER': return a[0]==null?null:+Math.pow(num(a[0]), num(a[1])).toFixed(6);
+    case 'UPPER': return a[0]==null?null:String(a[0]).toUpperCase();
+    case 'LOWER': return a[0]==null?null:String(a[0]).toLowerCase();
+    case 'LENGTH': return a[0]==null?null:String(a[0]).length;
+    case 'TRIM': return a[0]==null?null:String(a[0]).trim();
+    case 'COALESCE': case 'IFNULL': { for(let i=0;i<a.length;i++) if(a[i] != null) return a[i]; return null; }
+    case 'CONCAT': return a.map(v => v==null?'':String(v)).join('');
+    case 'SUBSTR': case 'SUBSTRING': return a[0]==null?null:String(a[0]).substr(Math.max(0,num(a[1])-1), a.length>2?num(a[2]):undefined);
+    case 'DATE': return a[0]==null?null:String(a[0]).slice(0,10);
+    case 'YEAR': return a[0]==null?null:parseInt(String(a[0]).slice(0,4),10);
+    case 'IF': return truthy(a[0]) ? a[1] : a[2];
+    case 'NOW': case 'CURRENT_DATE': return new Date().toISOString().slice(0,10);
+  }
+  throw new Error("Unknown function '" + name + "'");
+}
+function hasAgg(e){
+  if(!e || typeof e !== 'object') return false;
+  if(e.type === 'func' && AGG_FUNCS.has(e.name)) return true;
+  for(const k in e){
+    if(k === '_rx') continue;
+    const v = e[k];
+    if(Array.isArray(v)){ if(v.some(hasAgg)) return true; }
+    else if(v && typeof v === 'object' && hasAgg(v)) return true;
+  }
+  return false;
+}
+function exprToString(e){
+  switch(e.type){
+    case 'col': return e.name;
+    case 'star': return (e.qualifier ? e.qualifier + '.' : '') + '*';
+    case 'num': return String(e.value);
+    case 'str': return "'" + e.value + "'";
+    case 'null': return 'NULL';
+    case 'bool': return e.value ? 'TRUE' : 'FALSE';
+    case 'func': return e.name + '(' + (e.distinct ? 'DISTINCT ' : '') + e.args.map(exprToString).join(', ') + ')';
+    case 'bin': return exprToString(e.left) + ' ' + e.op + ' ' + exprToString(e.right);
+    case 'un': return e.op + ' ' + exprToString(e.arg);
+    case 'isnull': return exprToString(e.arg) + ' IS ' + (e.neg ? 'NOT ' : '') + 'NULL';
+    case 'in': return exprToString(e.arg) + (e.neg ? ' NOT' : '') + ' IN (...)';
+    case 'like': return exprToString(e.arg) + (e.neg ? ' NOT' : '') + ' LIKE ' + exprToString(e.pattern);
+    case 'between': return exprToString(e.arg) + (e.neg ? ' NOT' : '') + ' BETWEEN ' + exprToString(e.lo) + ' AND ' + exprToString(e.hi);
+  }
+  return 'expr';
+}
+
+/* ============================================================
+   10. EXECUTION
+   ============================================================ */
+function makeCtx(row, table, alias){
+  const ctx = { __src:[alias], __alias:alias };
+  for(let i=0;i<table.columns.length;i++){ const c = table.columns[i]; ctx[alias + '.' + c] = row ? row[c] : null; }
+  return ctx;
+}
+function mergeCtx(a, b){
+  const m = {};
+  for(const k in a) if(k !== '__src') m[k] = a[k];
+  for(const k in b) if(k !== '__src') m[k] = b[k];
+  m.__src = (a.__src || []).concat(b.__src || []);
+  return m;
+}
+
+function inferColumnTypeForWrite(table, col){
+  let sample;
+  for(let i=0;i<table.rows.length && i<50;i++){ const v = table.rows[i][col]; if(v != null){ sample = v; break; } }
+  if(sample === undefined) return 'VARCHAR';
+  if(typeof sample === 'number') return Number.isInteger(sample) ? 'INT' : 'DECIMAL';
+  if(typeof sample === 'boolean') return 'BOOL';
+  if(typeof sample === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sample)) return 'DATE';
+  return 'VARCHAR';
+}
+function coerceValue(raw, col, table){
+  if(raw == null) return null;
+  const type = inferColumnTypeForWrite(table, col);
+  if(type === 'INT' || type === 'DECIMAL'){
+    const n = typeof raw === 'number' ? raw : parseFloat(raw);
+    if(isNaN(n)) throw new Error("Column '" + col + "' expects a number but got '" + raw + "'");
+    return type === 'INT' ? Math.round(n) : n;
+  }
+  if(type === 'BOOL'){ if(typeof raw === 'boolean') return raw; const s = String(raw).toLowerCase(); return (s === 'true' || s === '1' || s === 'yes'); }
+  if(type === 'DATE'){
+    const s = String(raw);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) throw new Error("Column '" + col + "' expects a DATE in YYYY-MM-DD format but got '" + raw + "'");
+    return s;
+  }
+  return String(raw);
+}
+function validateColumns(ast, tables){
+  /* friendly errors for unknown unqualified columns in simple (non-join) statements */
+  return;
+}
+
+function execSelect(ast, t0){
+  const fromTable = resolveTable(ast.from.name);
+  const aliases = [ast.from.alias];
+  const srcInfo = {}; srcInfo[ast.from.alias] = fromTable;
+  let rows = fromTable.rows.map(r => makeCtx(r, fromTable, ast.from.alias));
+
+  for(let j=0;j<ast.joins.length;j++){
+    const jn = ast.joins[j], jt = resolveTable(jn.table.name);
+    aliases.push(jn.table.alias); srcInfo[jn.table.alias] = jt;
+    const rightCtxs = jt.rows.map(r => makeCtx(r, jt, jn.table.alias));   /* built once, not per pair */
+    const out = [];
+    for(let li=0; li<rows.length; li++){
+      const l = rows[li]; let matched = false;
+      for(let k=0;k<rightCtxs.length;k++){
+        const merged = mergeCtx(l, rightCtxs[k]);
+        if(truthy(evalExpr(jn.on, merged, null))){ out.push(merged); matched = true; }
+      }
+      if(!matched && jn.type === 'LEFT') out.push(mergeCtx(l, makeCtx(null, jt, jn.table.alias)));
+    }
+    rows = out;
+  }
+  if(ast.where) rows = rows.filter(ctx => truthy(evalExpr(ast.where, ctx, null)));
+
+  const aggregated = ast.groupBy.length > 0 || ast.cols.some(c => hasAgg(c.expr)) || (ast.having ? hasAgg(ast.having) : false);
+  const outCols = [];
+  ast.cols.forEach(item => {
+    if(item.expr.type === 'star'){
+      if(aggregated) throw new Error("SELECT * cannot be combined with GROUP BY or aggregate functions.");
+      const quals = item.expr.qualifier ? [item.expr.qualifier] : aliases;
+      quals.forEach(q => {
+        const tbl = srcInfo[q];
+        if(!tbl) throw new Error("Unknown table alias '" + q + "' in SELECT *");
+        tbl.columns.forEach(c => outCols.push({ label:c, kind:'col', alias:q, col:c }));
+      });
+    } else outCols.push({ label: item.alias || exprToString(item.expr), kind:'expr', expr:item.expr });
+  });
+  if(!outCols.length) throw new Error('No columns selected.');
+
+  /* catch typos in plain column names early */
+  const known = new Set();
+  aliases.forEach(a => srcInfo[a].columns.forEach(c => { known.add(c.toLowerCase()); known.add((a + '.' + c).toLowerCase()); }));
+  const aliasNames = new Set(outCols.map(c => c.label.toLowerCase()));
+  (function check(e){
+    if(!e || typeof e !== 'object') return;
+    if(e.type === 'col' && !known.has(e.name.toLowerCase()) && !aliasNames.has(e.name.toLowerCase()))
+      throw new Error("Unknown column '" + e.name + "'. Check the schema panel for valid column names.");
+    for(const k in e){ if(k === '_rx') continue; const v = e[k]; if(Array.isArray(v)) v.forEach(check); else if(v && typeof v === 'object') check(v); }
+  })({ a: ast.cols.map(c=>c.expr), w: ast.where, g: ast.groupBy, h: ast.having, o: ast.orderBy.map(o=>o.expr) });
+
+  let outRows = [];
+  if(!aggregated){
+    outRows = rows.map(ctx => {
+      const o = { __ctx:ctx, __group:null };
+      outCols.forEach((c, idx) => { o['c'+idx] = (c.kind === 'col') ? ctx[c.alias + '.' + c.col] : evalExpr(c.expr, ctx, null); });
+      return o;
+    });
+  } else {
+    let groups;
+    if(ast.groupBy.length === 0) groups = [rows];
+    else {
+      const map = new Map();
+      rows.forEach(ctx => {
+        const key = ast.groupBy.map(g => { const v = evalExpr(g, ctx, null); return v == null ? '\u0000NULL' : String(v).toLowerCase(); }).join('\u0001');
+        if(!map.has(key)) map.set(key, []);
+        map.get(key).push(ctx);
+      });
+      groups = [...map.values()];
+    }
+    groups.forEach(grp => {
+      const first = grp.length ? grp[0] : {};
+      const o = { __ctx:first, __group:grp }, aliasMap = {};
+      outCols.forEach((c, idx) => {
+        const v = (c.kind === 'col') ? ctxLookup(first, c.alias + '.' + c.col) : evalExpr(c.expr, first, grp);
+        o['c'+idx] = v; aliasMap[c.label] = v;
+      });
+      o.__aliasMap = aliasMap;
+      outRows.push(o);
+    });
+    if(ast.having){
+      outRows = outRows.filter(o => {
+        const hctx = Object.assign({}, o.__ctx, o.__aliasMap);
+        hctx.__src = o.__ctx.__src || [];
+        return truthy(evalExpr(ast.having, hctx, o.__group));
+      });
+    }
+  }
+  if(ast.distinct){
+    const seen = new Set();
+    outRows = outRows.filter(o => {
+      const k = outCols.map((c, idx) => { const v = o['c'+idx]; return v == null ? '\u0000' : String(v).toLowerCase(); }).join('\u0001');
+      if(seen.has(k)) return false; seen.add(k); return true;
+    });
+  }
+  if(ast.orderBy.length){
+    outRows.sort((x, y) => {
+      for(let i=0;i<ast.orderBy.length;i++){
+        const ob = ast.orderBy[i];
+        const xc = Object.assign({}, x.__ctx, x.__aliasMap || {}), yc = Object.assign({}, y.__ctx, y.__aliasMap || {});
+        if(x.__ctx) xc.__src = x.__ctx.__src || [];
+        if(y.__ctx) yc.__src = y.__ctx.__src || [];
+        let xv, yv;
+        if(ob.expr.type === 'col' && ob.expr.name.indexOf('.') < 0){
+          const idx = outCols.findIndex(c => c.label.toLowerCase() === ob.expr.name.toLowerCase());
+          if(idx >= 0){ xv = x['c'+idx]; yv = y['c'+idx]; }
+        }
+        if(xv === undefined) xv = evalExpr(ob.expr, xc, x.__group);
+        if(yv === undefined) yv = evalExpr(ob.expr, yc, y.__group);
+        const r = cmpVals(xv, yv);
+        if(r !== 0) return ob.dir === 'DESC' ? -r : r;
+      }
+      return 0;
+    });
+  }
+  if(ast.offset) outRows = outRows.slice(ast.offset);
+  if(ast.limit != null) outRows = outRows.slice(0, ast.limit);
+
+  const ms = (performance.now() - t0).toFixed(1);
+  return {
+    type:'select', cols: outCols.map(c => c.label),
+    data: outRows.map(o => outCols.map((c, idx) => o['c'+idx])),
+    scanned: rows.length, ms
+  };
+}
+
+function execInsert(ast, t0){
+  const tbl = resolveTable(ast.table.name), tableName = ast.table.name.toLowerCase();
+  const targetCols = ast.columns || tbl.columns.slice();
+  targetCols.forEach(c => { if(tbl.columns.indexOf(c) < 0) throw new Error("Unknown column '" + c + "' in table '" + tableName + "'"); });
+  const pkCol = tbl.columns[0], inserted = [], emptyCtx = { __src:[] };
+  let nextPk = 1;
+  tbl.rows.forEach(r => { const v = +r[pkCol]; if(!isNaN(v) && v >= nextPk) nextPk = v + 1; });
+  const snap = takeSnap(tableName);
+  try {
+    ast.rows.forEach((valueExprs, rowIdx) => {
+      if(valueExprs.length !== targetCols.length)
+        throw new Error("INSERT row #" + (rowIdx+1) + ": column count mismatch — expected " + targetCols.length + " values but got " + valueExprs.length);
+      const newRow = {};
+      tbl.columns.forEach(c => { newRow[c] = null; });
+      targetCols.forEach((col, i) => { newRow[col] = coerceValue(evalExpr(valueExprs[i], emptyCtx, null), col, tbl); });
+      if(targetCols.indexOf(pkCol) < 0 || newRow[pkCol] == null) newRow[pkCol] = nextPk++;
+      else if(tbl.rows.some(r => looseEq(r[pkCol], newRow[pkCol]))) throw new Error("Duplicate value for primary key '" + pkCol + "': " + newRow[pkCol]);
+      tbl.rows.push(newRow); inserted.push(newRow);
+    });
+  } catch(err){ restoreSnap(snap); throw err; }
+  if(inserted.length){ pushUndo(snap); commitWrite(); }
+  return writeResult('INSERT', tbl, tableName, inserted, t0);
+}
+function execUpdate(ast, t0){
+  const tbl = resolveTable(ast.table.name), tableName = ast.table.name.toLowerCase();
+  ast.assignments.forEach(a => { if(tbl.columns.indexOf(a.col) < 0) throw new Error("Unknown column '" + a.col + "' in table '" + tableName + "'"); });
+  if(!ast.where && tbl.rows.length > 5){
+    if(!confirm("⚠ UPDATE without a WHERE clause will modify all " + tbl.rows.length.toLocaleString() + " rows in '" + tableName + "'.\n\nContinue? (You can Undo afterwards.)"))
+      throw new Error("UPDATE cancelled by user");
+  }
+  const snap = takeSnap(tableName), updated = [];
+  try {
+    tbl.rows.forEach(row => {
+      const ctx = makeCtx(row, tbl, ast.table.alias);
+      if(ast.where && !truthy(evalExpr(ast.where, ctx, null))) return;
+      const vals = ast.assignments.map(a => coerceValue(evalExpr(a.expr, ctx, null), a.col, tbl));  /* evaluate all first */
+      ast.assignments.forEach((a, i) => { row[a.col] = vals[i]; });
+      updated.push(row);
+    });
+  } catch(err){ restoreSnap(snap); throw err; }
+  if(updated.length){ pushUndo(snap); commitWrite(); }
+  return writeResult('UPDATE', tbl, tableName, updated, t0);
+}
+function execDelete(ast, t0){
+  const tbl = resolveTable(ast.table.name), tableName = ast.table.name.toLowerCase();
+  if(!ast.where && tbl.rows.length > 5){
+    if(!confirm("⚠ DELETE without a WHERE clause will remove all " + tbl.rows.length.toLocaleString() + " rows from '" + tableName + "'.\n\nContinue? (You can Undo afterwards.)"))
+      throw new Error("DELETE cancelled by user");
+  }
+  const snap = takeSnap(tableName), deleted = [], kept = [];
+  tbl.rows.forEach(row => {
+    const ctx = makeCtx(row, tbl, ast.table.alias);
+    if(!ast.where || truthy(evalExpr(ast.where, ctx, null))) deleted.push(row); else kept.push(row);
+  });
+  if(deleted.length){ tbl.rows = kept; pushUndo(snap); commitWrite(); }
+  return writeResult('DELETE', tbl, tableName, deleted, t0);
+}
+function writeResult(action, tbl, tableName, rows, t0){
+  const icon = { INSERT:'✅', UPDATE:'✏️', DELETE:'🗑️' }[action];
+  const verb = { INSERT:'inserted into', UPDATE:'modified in', DELETE:'removed from' }[action];
+  return {
+    type:'write', action, tableName, cols: tbl.columns,
+    data: rows.map(r => tbl.columns.map(c => r[c])), affected: rows.length,
+    message: icon + ' <b>' + action + '</b> — ' + rows.length + ' row' + (rows.length === 1 ? '' : 's') + ' ' + verb + ' <code>' + tableName + '</code>',
+    ms: (performance.now() - t0).toFixed(1)
+  };
+}
+function commitWrite(){ markModified(); saveToStorage(); refreshAfterWrite(); }
+
+function runStatement(sqlText){
+  const t0 = performance.now();
+  const ast = new Parser(tokenize(sqlText)).parse();
+  if(ast.type === 'insert') return execInsert(ast, t0);
+  if(ast.type === 'update') return execUpdate(ast, t0);
+  if(ast.type === 'delete') return execDelete(ast, t0);
+  return execSelect(ast, t0);
+}
+
+/* ============================================================
+   11. RENDERING (sortable, paged, chart view)
+   ============================================================ */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+function fmtCell(v){
+  if(v == null) return { t:'NULL', c:'null' };
+  if(typeof v === 'boolean') return { t: v ? 'TRUE' : 'FALSE', c:'' };
+  if(typeof v === 'number') return Number.isInteger(v) ? { t:v.toLocaleString('en-US'), c:'num' } : { t:v.toLocaleString('en-US',{maximumFractionDigits:4}), c:'num' };
+  return { t:String(v), c:'' };
+}
+const $ = id => document.getElementById(id);
+const resultsEl = $('results'), statusEl = $('status'), toolsEl = $('resultTools');
+
+function showStatus(msg, kind){ statusEl.className = 'status show ' + kind; statusEl.innerHTML = msg; }
+function hideStatus(){ statusEl.className = 'status'; }
+function toast(msg, kind){
+  const t = document.createElement('div');
+  t.className = 'toast' + (kind === 'warn' ? ' warn' : '');
+  t.textContent = msg; $('toasts').appendChild(t);
+  setTimeout(() => { t.style.transition = 'opacity .3s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2600);
+}
+
+/* G = current result grid */
+let G = null;
+function setGrid(res){
+  G = {
+    kind: res.type, action: res.action || null, cols: res.cols, data: res.data.slice(),
+    sortCol: -1, sortDir: 1, page: 0, view: 'table', ms: res.ms, scanned: res.scanned, tableName: res.tableName, affected: res.affected
+  };
+  $('viewTableBtn').classList.add('on'); $('viewChartBtn').classList.remove('on');
+  renderGrid();
+}
+function chartableCols(){
+  if(!G || G.kind !== 'select' || G.data.length === 0 || G.data.length > 60) return null;
+  const numIdx = [];
+  G.cols.forEach((c, i) => { if(G.data.every(r => r[i] == null || typeof r[i] === 'number')) numIdx.push(i); });
+  if(!numIdx.length) return null;
+  const labelIdx = G.cols.findIndex((c, i) => numIdx.indexOf(i) < 0);
+  return { labelIdx: labelIdx < 0 ? 0 : labelIdx, valIdx: numIdx[numIdx.length > 1 && labelIdx >= 0 ? 0 : numIdx.length - 1] };
+}
+function renderGrid(){
+  if(!G){ toolsEl.style.display = 'none'; return; }
+  if(!G.data.length){
+    toolsEl.style.display = 'none';
+    const ico = G.kind === 'select' ? '🌱' : (G.action === 'INSERT' ? '➕' : G.action === 'UPDATE' ? '✏️' : '🗑️');
+    resultsEl.innerHTML = '<div class="empty-msg"><span class="big">' + ico + '</span>' +
+      (G.kind === 'select' ? 'Query executed successfully — 0 rows returned.' : '0 rows affected in <b>' + escapeHtml(G.tableName) + '</b>.') +
+      '<br><small>' + (G.scanned != null ? 'Rows scanned: ' + G.scanned.toLocaleString('en-US') + ' · ' : '') + G.ms + ' ms</small></div>';
+    return;
+  }
+  toolsEl.style.display = 'flex';
+  const cc = chartableCols();
+  $('viewChartBtn').disabled = !cc;
+  if(G.view === 'chart' && !cc) G.view = 'table';
+  if(G.view === 'chart') return renderChart(cc);
+
+  const size = +$('pageSize').value, total = G.data.length, pages = Math.max(1, Math.ceil(total / size));
+  if(G.page >= pages) G.page = pages - 1;
+  const start = G.page * size, slice = G.data.slice(start, start + size);
+  const headClass = G.kind === 'write' ? ({INSERT:'insert-head',UPDATE:'update-head',DELETE:'delete-head'})[G.action] : '';
+  let html = '<div class="table-wrap"><table class="result"><thead><tr><th class="rownum">#</th>';
+  G.cols.forEach((c, i) => {
+    const arrow = G.sortCol === i ? '<span class="arrow">' + (G.sortDir === 1 ? '▲' : '▼') + '</span>' : '';
+    html += '<th class="' + headClass + '" data-ci="' + i + '" title="Click to sort">' + escapeHtml(c) + arrow + '</th>';
+  });
+  html += '</tr></thead><tbody>';
+  slice.forEach((r, ri) => {
+    html += '<tr><td class="rownum">' + (start + ri + 1) + '</td>';
+    r.forEach(v => { const f = fmtCell(v); html += '<td class="' + f.c + '" title="' + escapeHtml(f.t) + '">' + escapeHtml(f.t) + '</td>'; });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  const isW = G.kind === 'write';
+  html += '<div class="result-foot' + (isW ? ' write-foot' : '') + '"><span><b>' + total.toLocaleString('en-US') + '</b> row' + (total === 1 ? '' : 's') +
+    (isW ? ' ' + ({INSERT:'inserted',UPDATE:'updated',DELETE:'deleted'})[G.action] + ' in <code>' + escapeHtml(G.tableName) + '</code>' : ' returned · ' + G.cols.length + ' col' + (G.cols.length === 1 ? '' : 's') + ' · scanned ' + G.scanned.toLocaleString('en-US') + ' rows') +
+    ' · <b>' + G.ms + ' ms</b></span>' +
+    '<span class="pager"><button data-pg="first"' + (G.page === 0 ? ' disabled' : '') + '>«</button><button data-pg="prev"' + (G.page === 0 ? ' disabled' : '') + '>‹</button>' +
+    '<span>Page <b>' + (G.page + 1) + '</b> / ' + pages + '</span>' +
+    '<button data-pg="next"' + (G.page >= pages - 1 ? ' disabled' : '') + '>›</button><button data-pg="last"' + (G.page >= pages - 1 ? ' disabled' : '') + '>»</button></span></div>';
+  resultsEl.innerHTML = html;
+}
+function renderChart(cc){
+  const rows = G.data.map(r => ({ l: r[cc.labelIdx] == null ? 'NULL' : String(r[cc.labelIdx]), v: r[cc.valIdx] == null ? 0 : r[cc.valIdx] }));
+  const max = Math.max.apply(null, rows.map(r => Math.abs(r.v))) || 1;
+  let html = '<div class="chart"><div class="chart-title">' + escapeHtml(G.cols[cc.valIdx]) + ' by ' + escapeHtml(G.cols[cc.labelIdx]) + '</div>';
+  rows.forEach(r => {
+    html += '<div class="bar-row"><div class="lbl" title="' + escapeHtml(r.l) + '">' + escapeHtml(r.l) + '</div>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + Math.max(1, Math.abs(r.v) / max * 100).toFixed(1) + '%"></div></div>' +
+      '<div class="val">' + escapeHtml(fmtCell(r.v).t) + '</div></div>';
+  });
+  resultsEl.innerHTML = html + '</div>';
+}
+resultsEl.addEventListener('click', e => {
+  const th = e.target.closest('th[data-ci]');
+  if(th && G){
+    const i = +th.getAttribute('data-ci');
+    G.sortDir = (G.sortCol === i) ? -G.sortDir : 1; G.sortCol = i;
+    G.data.sort((a, b) => cmpVals(a[i], b[i]) * G.sortDir);
+    G.page = 0; renderGrid(); return;
+  }
+  const pg = e.target.closest('button[data-pg]');
+  if(pg && G){
+    const pages = Math.ceil(G.data.length / +$('pageSize').value), a = pg.getAttribute('data-pg');
+    G.page = a === 'first' ? 0 : a === 'prev' ? G.page - 1 : a === 'next' ? G.page + 1 : pages - 1;
+    renderGrid();
+  }
+});
+$('pageSize').addEventListener('change', () => { if(G){ G.page = 0; renderGrid(); } });
+$('viewTableBtn').addEventListener('click', () => { if(!G) return; G.view = 'table'; $('viewTableBtn').classList.add('on'); $('viewChartBtn').classList.remove('on'); renderGrid(); });
+$('viewChartBtn').addEventListener('click', () => { if(!G) return; G.view = 'chart'; $('viewChartBtn').classList.add('on'); $('viewTableBtn').classList.remove('on'); renderGrid(); });
+
+function gridToText(sep, quote){
+  const esc = v => {
+    if(v == null) return '';
+    const s = String(v);
+    return quote && /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  return [G.cols.map(esc).join(sep)].concat(G.data.map(r => r.map(esc).join(sep))).join('\n');
+}
+$('csvBtn').addEventListener('click', () => {
+  if(!G || !G.data.length) return;
+  const blob = new Blob(['\ufeff' + gridToText(',', true)], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'agrisql_result_' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.csv';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('CSV downloaded (' + G.data.length.toLocaleString('en-US') + ' rows)');
+});
+$('copyBtn').addEventListener('click', () => {
+  if(!G || !G.data.length) return;
+  const txt = gridToText('\t', false);
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(
+    () => toast('Copied — paste straight into Excel or Sheets'),
+    () => { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast('Copied to clipboard'); }catch(e){ toast('Copy failed','warn'); } ta.remove(); }
+  );
+});
+
+/* ============================================================
+   12. EDITOR, RUN, HISTORY
+   ============================================================ */
+const sqlEl = $('sql'), runBtn = $('runBtn');
+let history = lsGet(HIST_KEY, []), histPos = -1;
+
+function addHistory(sql, ok){
+  sql = sql.trim(); if(!sql) return;
+  history = history.filter(h => h.sql !== sql);
+  history.unshift({ sql, ok, ts: Date.now() });
+  history = history.slice(0, 30); lsSet(HIST_KEY, history); histPos = -1; renderHistory();
+}
+function renderHistory(){
+  const box = $('historyList');
+  if(!history.length){ box.innerHTML = '<div class="empty">No queries yet — run something!</div>'; return; }
+  box.innerHTML = history.map((h, i) => {
+    const w = /^\s*(insert|update|delete)/i.test(h.sql);
+    return '<button type="button" class="' + (w ? 'write ' : '') + (h.ok ? '' : 'fail') + '" data-h="' + i + '" title="' + escapeHtml(new Date(h.ts).toLocaleString()) + '">' + escapeHtml(h.sql.replace(/\s+/g, ' ')) + '</button>';
+  }).join('');
+}
+$('historyList').addEventListener('click', e => {
+  const b = e.target.closest('button[data-h]'); if(!b) return;
+  sqlEl.value = history[+b.getAttribute('data-h')].sql; updateCount(); sqlEl.focus();
+});
+$('clearHistBtn').addEventListener('click', () => { history = []; lsSet(HIST_KEY, history); renderHistory(); toast('History cleared'); });
+
+function updateCount(){
+  const v = sqlEl.value, n = splitStatements(v).length;
+  $('editorCount').textContent = v.length + ' chars · ' + n + ' statement' + (n === 1 ? '' : 's');
+}
+sqlEl.addEventListener('input', updateCount);
+
+function execute(){
+  const sel = sqlEl.value.substring(sqlEl.selectionStart, sqlEl.selectionEnd).trim();
+  const text = sel || sqlEl.value.trim();
+  if(!text){ showStatus('⚠️ Please enter a SQL statement.', 'err'); return; }
+  const stmts = splitStatements(text);
+  if(!stmts.length){ showStatus('⚠️ Nothing to run — only comments found.', 'err'); return; }
+  runBtn.disabled = true;
+  /* let the browser paint the disabled state before heavy work */
+  setTimeout(() => {
+    let last = null, done = 0, totalAffected = 0;
+    try {
+      for(let i=0;i<stmts.length;i++){
+        try { last = runStatement(stmts[i]); done++; if(last.type === 'write') totalAffected += last.affected; addHistory(stmts[i], true); }
+        catch(err){ addHistory(stmts[i], false); err.stmtIndex = i; throw err; }
+      }
+      setGrid(last);
+      if(last.type === 'write') showStatus(last.message + ' · <b>' + last.ms + ' ms</b>' + (stmts.length > 1 ? ' · ran <b>' + done + '</b> statements' : '') + ' · <a href="#" id="undoLink">Undo</a>', 'write');
+      else showStatus('✅ Query OK — <b>' + last.data.length.toLocaleString('en-US') + '</b> row(s) in <b>' + last.ms + ' ms</b>' + (stmts.length > 1 ? ' · ran <b>' + done + '</b> statements, showing the last result' : '') + '.', 'ok');
+      if(last.type === 'select') resultsEl.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    } catch(err){
+      console.error(err);
+      if(G && done === 0){ G = null; toolsEl.style.display = 'none'; }
+      resultsEl.innerHTML = '<div class="empty-msg"><span class="big">🥀</span>Statement failed.</div>';
+      showStatus('❌ <b>SQL Error' + (stmts.length > 1 ? ' (statement ' + (err.stmtIndex + 1) + ' of ' + stmts.length + ')' : '') + ':</b> ' + escapeHtml(err.message) +
+        (done > 0 ? '<br><small>' + done + ' earlier statement(s) already ran — use Undo to revert writes.</small>' : ''), 'err');
+    } finally { runBtn.disabled = false; }
+  }, 10);
+}
+runBtn.addEventListener('click', execute);
+statusEl.addEventListener('click', e => { if(e.target.id === 'undoLink'){ e.preventDefault(); doUndo(); } });
+
+$('clearBtn').addEventListener('click', () => {
+  sqlEl.value = ''; updateCount(); sqlEl.focus(); hideStatus(); G = null; toolsEl.style.display = 'none';
+  resultsEl.innerHTML = '<div class="empty-msg"><span class="big">🌾</span>Write a query and press <b>Run</b>.</div>';
+});
+
+/* simple SQL formatter */
+$('formatBtn').addEventListener('click', () => {
+  const v = sqlEl.value; if(!v.trim()) return;
+  const stmts = splitStatements(v);
+  const out = stmts.map(s => {
+    let r = s.replace(/\s+/g, ' ').trim();
+    /* keep string literals intact */
+    const strs = []; r = r.replace(/'(?:[^']|'')*'/g, m => { strs.push(m); return '\u0001' + (strs.length - 1) + '\u0001'; });
+    r = r.replace(/\b(select|from|where|group by|having|order by|limit|offset|inner join|left outer join|left join|join|on|and|or|as|in|like|between|is|not|null|asc|desc|distinct|insert into|values|update|set|delete from|offset|count|sum|avg|min|max|round)\b/gi, m => m.toUpperCase());
+    r = r.replace(/ (FROM|WHERE|GROUP BY|HAVING|ORDER BY|LIMIT|INNER JOIN|LEFT OUTER JOIN|LEFT JOIN|JOIN|VALUES|SET) /g, '\n$1 ');
+    r = r.replace(/\) VALUES/g, ')\nVALUES');
+    r = r.replace(/\u0001(\d+)\u0001/g, (m, i) => strs[+i]);
+    return r + ';';
+  });
+  sqlEl.value = out.join('\n\n'); updateCount(); toast('SQL formatted');
+});
+
+sqlEl.addEventListener('keydown', e => {
+  if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); execute(); return; }
+  if((e.ctrlKey || e.metaKey) && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && history.length){
+    e.preventDefault();
+    histPos += e.key === 'ArrowUp' ? 1 : -1;
+    histPos = Math.max(-1, Math.min(history.length - 1, histPos));
+    if(histPos >= 0){ sqlEl.value = history[histPos].sql; updateCount(); }
+    return;
+  }
+  if(e.key === 'Tab' && !e.shiftKey){
+    e.preventDefault();
+    const s = sqlEl.selectionStart, en = sqlEl.selectionEnd;
+    sqlEl.value = sqlEl.value.slice(0, s) + '  ' + sqlEl.value.slice(en);
+    sqlEl.setSelectionRange(s + 2, s + 2); updateCount();
+  }
+});
+function insertAtCursor(text){
+  const start = sqlEl.selectionStart, end = sqlEl.selectionEnd, val = sqlEl.value;
+  const sp = start > 0 && !/[\s(,.]/.test(val[start-1]);
+  const ins = (sp ? ' ' : '') + text;
+  sqlEl.value = val.slice(0, start) + ins + val.slice(end);
+  sqlEl.setSelectionRange(start + ins.length, start + ins.length); sqlEl.focus(); updateCount();
+}
+function loadAndRun(sql){ sqlEl.value = sql; sqlEl.setSelectionRange(0,0); updateCount(); execute(); }
+
+/* ============================================================
+   13. UNDO / RESET / THEME
+   ============================================================ */
+function updateUndoBtn(){
+  const b = $('undoBtn'); b.disabled = undoStack.length === 0;
+  b.innerHTML = '↶ Undo' + (undoStack.length ? ' (' + undoStack.length + ')' : '');
+}
+function doUndo(){
+  if(!undoStack.length){ toast('Nothing to undo','warn'); return; }
+  const snap = undoStack.pop();
+  restoreSnap(snap); saveToStorage(); refreshAfterWrite(); updateUndoBtn();
+  G = null; toolsEl.style.display = 'none';
+  resultsEl.innerHTML = '<div class="empty-msg"><span class="big">↶</span>Reverted the last change to <b>' + escapeHtml(snap.table) + '</b>.<br><small>' + undoStack.length + ' more undo step(s) available</small></div>';
+  showStatus('↶ <b>Undo</b> — restored table <code>' + escapeHtml(snap.table) + '</code> to its state before the last write.', 'ok');
+  toast('Undone');
+}
+$('undoBtn').addEventListener('click', doUndo);
+
+$('resetBtn').addEventListener('click', () => {
+  if(!confirm(dbModified ? '⚠ Reset the database to its original state?\n\nAll INSERT / UPDATE / DELETE changes will be permanently lost.' : 'Reload the original ' + ORIGINAL_TOTAL.toLocaleString() + '-row dataset?')) return;
+  clearStorage(); buildFreshDatabase(); undoStack.length = 0; updateUndoBtn();
+  dbModified = false; updateModifiedBadge(); rebuildSchemaSidebar(); renderHeaderStats();
+  G = null; toolsEl.style.display = 'none';
+  showStatus('🔄 Database reset to original ' + ORIGINAL_TOTAL.toLocaleString() + ' rows.', 'ok');
+  resultsEl.innerHTML = '<div class="empty-msg"><span class="big">🌱</span>Database restored to original state.<br><small>Run a query to see fresh results.</small></div>';
+});
+
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  $('themeBtn').textContent = t === 'dark' ? '☀️' : '🌙';
+}
+(function initTheme(){
+  let t = lsGet(THEME_KEY, null);
+  if(!t) t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  applyTheme(t);
+})();
+$('themeBtn').addEventListener('click', () => {
+  const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  applyTheme(t); lsSet(THEME_KEY, t);
+});
+
+/* ============================================================
+   14. SCHEMA MODAL
+   ============================================================ */
+const schemaModal = $('schemaModal');
+function buildSchemaModal(){
+  const names = Object.keys(DB.tables); let totalRows = 0, totalCols = 0;
+  $('schemaSummary').innerHTML = names.map(tbl => {
+    const t = DB.tables[tbl], meta = SCHEMA_META[tbl] || { icon:'📋' };
+    totalRows += t.rows.length; totalCols += t.columns.length;
+    return '<div class="sum-card" data-peek="' + tbl + '" title="Preview ' + tbl + '"><div class="s-icon">' + meta.icon + '</div><div class="s-name">' + escapeHtml(tbl) +
+      '</div><div class="s-stats"><span><b>' + t.rows.length.toLocaleString('en-US') + '</b> rows</span><span><b>' + t.columns.length + '</b> cols</span></div></div>';
+  }).join('');
+  const rowsHtml = [];
+  names.forEach((tbl, tblIdx) => {
+    const t = DB.tables[tbl], meta = SCHEMA_META[tbl] || { icon:'📋', types:{}, fks:{} };
+    const sampleRow = t.rows.length ? t.rows[0] : {};
+    t.columns.forEach((col, colIdx) => {
+      const keyInfo = getKeyInfo(tbl, col);
+      const cleanType = (meta.types[col] || 'VARCHAR').replace(/\s*(PK|FK)$/, '').trim();
+      const nullable = inferNullable(tbl, col), sv = sampleRow[col];
+      let sampleCell;
+      if(sv == null) sampleCell = '<span class="sch-sample">NULL</span>';
+      else if(typeof sv === 'number') sampleCell = '<span class="sch-sample">' + escapeHtml(Number.isInteger(sv) ? sv.toLocaleString('en-US') : sv.toLocaleString('en-US',{maximumFractionDigits:4})) + '</span>';
+      else { let s = String(sv); if(s.length > 40) s = s.slice(0,37) + '…'; sampleCell = '<span class="sch-sample">' + escapeHtml(s) + '</span>'; }
+      let keyCell = '<span class="key-none">—</span>';
+      if(keyInfo.key === 'PK') keyCell = '<span class="sch-key key-pk" title="Primary Key">PK</span>';
+      else if(keyInfo.key === 'FK') keyCell = '<span class="sch-key key-fk" title="Foreign Key → ' + escapeHtml(keyInfo.ref) + '">FK</span>';
+      const cls = [(tblIdx % 2 === 1) ? 'tbl-alt' : '', (colIdx === 0 && tblIdx > 0) ? 'group-start' : ''].filter(Boolean).join(' ');
+      rowsHtml.push('<tr class="' + cls + '"><td>' + (colIdx === 0 ? '<span class="tbl-tag">' + (meta.icon || '📋') + ' ' + escapeHtml(tbl) + '<span class="tbl-rows">' + t.rows.length.toLocaleString('en-US') + '</span></span>' : '') + '</td>' +
+        '<td style="color:var(--muted);font-family:ui-monospace,monospace;font-size:.72rem;">' + (colIdx+1) + '</td>' +
+        '<td><span class="sch-col" data-ins="' + col + '" title="Insert into editor">' + escapeHtml(col) + '</span></td>' +
+        '<td><span class="sch-type">' + escapeHtml(cleanType) + '</span></td><td>' + keyCell + '</td>' +
+        '<td class="sch-null ' + (nullable ? 'yes' : 'no') + '">' + (nullable ? 'YES' : 'NO') + '</td><td>' + sampleCell + '</td></tr>');
+    });
+  });
+  $('schemaFullBody').innerHTML = rowsHtml.join('');
+  $('schemaFootStats').innerHTML = '<b>' + names.length + '</b> tables · <b>' + totalRows.toLocaleString('en-US') + '</b> rows · <b>' + totalCols + '</b> columns · <b>5</b> relationships';
+}
+function openSchemaModal(){ buildSchemaModal(); schemaModal.classList.add('show'); document.body.style.overflow = 'hidden'; $('schemaClose').focus(); }
+function closeSchemaModal(){ schemaModal.classList.remove('show'); document.body.style.overflow = ''; $('schemaBtn').focus(); }
+$('schemaBtn').addEventListener('click', openSchemaModal);
+$('schemaClose').addEventListener('click', closeSchemaModal);
+$('schemaCloseBtn').addEventListener('click', closeSchemaModal);
+schemaModal.addEventListener('click', e => {
+  if(e.target === schemaModal){ closeSchemaModal(); return; }
+  const card = e.target.closest('[data-peek]');
+  if(card){ closeSchemaModal(); loadAndRun('SELECT * FROM ' + card.getAttribute('data-peek') + ' LIMIT 100;'); return; }
+  const col = e.target.closest('[data-ins]');
+  if(col){ closeSchemaModal(); insertAtCursor(col.getAttribute('data-ins')); }
+});
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && schemaModal.classList.contains('show')) closeSchemaModal(); });
+
+/* ============================================================
+   15. SIDEBAR SCHEMA (listener bound once)
+   ============================================================ */
+function rebuildSchemaSidebar(){
+  const list = $('schemaList'), q = $('tblFilter').value.trim().toLowerCase();
+  const openState = {};
+  list.querySelectorAll('.schema-item').forEach(el => { openState[el.getAttribute('data-t')] = el.querySelector('.col-chips').style.display !== 'none'; });
+  let html = '', totalRows = 0;
+  Object.keys(DB.tables).forEach(name => {
+    const t = DB.tables[name]; totalRows += t.rows.length;
+    const cols = t.columns.filter(c => !q || name.indexOf(q) >= 0 || c.toLowerCase().indexOf(q) >= 0);
+    if(q && !cols.length) return;
+    const open = name in openState ? openState[name] : true;
+    html += '<div class="schema-item" data-t="' + name + '"><div class="sh"><button type="button" class="tname" data-toggle="1"><span>' + (SCHEMA_META[name] ? SCHEMA_META[name].icon : '📋') + ' ' + name + '</span><span class="rows-badge">' + t.rows.length.toLocaleString('en-US') + '</span></button>' +
+      '<button type="button" class="peek" data-peek="' + name + '" title="Preview first 50 rows" aria-label="Preview ' + name + '">▶</button></div>' +
+      '<div class="col-chips" style="display:' + (open ? 'flex' : 'none') + '">' + cols.map(c => '<span data-col="' + c + '" title="Click to insert">' + c + '</span>').join('') + '</div></div>';
+  });
+  list.innerHTML = html || '<div class="empty-msg" style="padding:14px">No matches</div>';
+  $('schemaRowTotal').textContent = totalRows.toLocaleString('en-US') + ' total';
+}
+$('schemaList').addEventListener('click', e => {
+  const chip = e.target.closest('span[data-col]');
+  if(chip){ insertAtCursor(chip.getAttribute('data-col')); return; }
+  const pk = e.target.closest('button[data-peek]');
+  if(pk){ loadAndRun('SELECT * FROM ' + pk.getAttribute('data-peek') + ' LIMIT 50;'); return; }
+  const btn = e.target.closest('button[data-toggle]');
+  if(btn){ const c = btn.closest('.schema-item').querySelector('.col-chips'); c.style.display = c.style.display === 'none' ? 'flex' : 'none'; }
+});
+$('tblFilter').addEventListener('input', rebuildSchemaSidebar);
+rebuildSchemaSidebar();
+
+/* ============================================================
+   16. SAMPLE QUERIES
+   ============================================================ */
+const SAMPLES = [
+  { sql:"SELECT region, COUNT(*) AS total_farms, ROUND(AVG(farm_size_ha), 2) AS avg_size_ha\nFROM farms\nGROUP BY region\nORDER BY total_farms DESC;", kind:'select' },
+  { sql:"SELECT crop_name, SUM(actual_yield_kg) AS total_kg, ROUND(AVG(market_price_per_kg),2) AS avg_price\nFROM crops\nGROUP BY crop_name\nORDER BY total_kg DESC\nLIMIT 10;", kind:'select' },
+  { sql:"SELECT f.farm_name, f.region, s.buyer_name, s.net_amount\nFROM sales s\nJOIN farms f ON s.farm_id = f.farm_id\nWHERE s.delivery_status = 'Delivered'\nORDER BY s.net_amount DESC\nLIMIT 15;", kind:'select' },
+  { sql:"SELECT animal_type, COUNT(*) AS heads, ROUND(AVG(weight_kg),1) AS avg_weight\nFROM livestock\nWHERE health_status = 'Healthy'\nGROUP BY animal_type\nORDER BY heads DESC;", kind:'select' },
+  { sql:"SELECT f.soil_type, ROUND(AVG(r.ph_level),2) AS avg_ph, ROUND(AVG(r.nitrogen_ppm),1) AS avg_nitrogen, COUNT(*) AS readings\nFROM soil_readings r\nJOIN farms f ON r.farm_id = f.farm_id\nGROUP BY f.soil_type\nHAVING COUNT(*) > 50\nORDER BY avg_ph DESC;", kind:'select' },
+  { sql:"SELECT * FROM farms WHERE province LIKE 'Davao%' LIMIT 20;", kind:'select' },
+  { sql:"SELECT farm_type, COUNT(*) AS n, ROUND(SUM(annual_yield_tons),0) AS total_yield\nFROM farms\nGROUP BY farm_type\nORDER BY total_yield DESC;", kind:'select' },
+  { sql:"SELECT YEAR(sale_date) AS yr, currency, ROUND(SUM(net_amount),0) AS revenue\nFROM sales\nWHERE delivery_status = 'Delivered'\nGROUP BY YEAR(sale_date), currency\nORDER BY yr, currency;", kind:'select' },
+  { sql:"INSERT INTO farms (farm_name, owner_name, region, province, municipality, farm_type, farm_size_ha, soil_type, irrigation_type, established_year, certification, annual_yield_tons, status)\nVALUES ('Binay-an Family Farm', 'Engr. Lee-Mher Binay-an', 'Cordillera', 'Benguet', 'La Trinidad', 'Crop Farm', 8.5, 'Loam', 'Drip Irrigation', 2015, 'Organic Certified', 320.50, 'Active');", kind:'insert' },
+  { sql:"INSERT INTO crops (farm_id, crop_name, variety, category, season, planting_date, harvest_date, area_planted_ha, growth_stage, expected_yield_kg, actual_yield_kg, water_used_mm, fertilizer_kg, pesticide_kg, market_price_per_kg, soil_ph)\nVALUES (1, 'Rice', 'NSIC Rc222', 'Cereal', 'Wet Season', '2024-06-15', '2024-10-20', 3.5, 'Harvested', 14000, 15200, 900, 250.0, 12.5, 22.50, 6.80);", kind:'insert' },
+  { sql:"UPDATE farms\nSET certification = 'Organic Certified'\nWHERE farm_size_ha < 5.0 AND certification = 'None';", kind:'update' },
+  { sql:"UPDATE livestock\nSET health_status = 'Vaccinated', daily_feed_kg = daily_feed_kg + 1.5\nWHERE animal_type = 'Cattle' AND age_months < 24;", kind:'update' },
+  { sql:"UPDATE soil_readings\nSET notes = 'Monitor closely'\nWHERE ph_level < 5.0 AND nitrogen_ppm < 30;", kind:'update' },
+  { sql:"DELETE FROM sales\nWHERE delivery_status = 'Cancelled';", kind:'delete' },
+  { sql:"DELETE FROM soil_readings\nWHERE ph_level < 4.3 AND notes = 'High salinity';", kind:'delete' }
+];
+let sampleFilter = 'all';
+function renderSamples(){
+  $('sampleList').innerHTML = SAMPLES.map((s, i) => {
+    if(sampleFilter !== 'all' && s.kind !== sampleFilter) return '';
+    const cls = s.kind === 'select' ? '' : (s.kind === 'delete' ? 'write danger' : 'write');
+    const icon = ({select:'', insert:'➕ ', update:'✏️ ', delete:'🗑️ '})[s.kind];
+    return '<button type="button" class="' + cls + '" data-i="' + i + '" title="Click to load &amp; run">' + icon + escapeHtml(s.sql.replace(/\n/g, ' ')) + '</button>';
+  }).join('');
+}
+$('sampleTabs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-k]'); if(!b) return;
+  sampleFilter = b.getAttribute('data-k');
+  $('sampleTabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  renderSamples();
+});
+$('sampleList').addEventListener('click', e => {
+  const b = e.target.closest('button[data-i]'); if(!b) return;
+  loadAndRun(SAMPLES[+b.getAttribute('data-i')].sql);
+});
+renderSamples();
+
+/* ============================================================
+   17. HEADER STATS & BADGE
+   ============================================================ */
+function renderHeaderStats(){
+  const names = Object.keys(DB.tables); let r = 0, c = 0;
+  names.forEach(n => { r += DB.tables[n].rows.length; c += DB.tables[n].columns.length; });
+  $('headerStats').innerHTML = '<span class="stat-pill">Tables <b>' + names.length + '</b></span><span class="stat-pill">Rows <b>' + r.toLocaleString('en-US') + '</b></span><span class="stat-pill">Columns <b>' + c + '</b></span>';
+}
+function updateModifiedBadge(){ $('modifiedBadge').style.display = dbModified ? 'inline-block' : 'none'; }
+function markModified(){ dbModified = true; updateModifiedBadge(); }
+function refreshAfterWrite(){ rebuildSchemaSidebar(); renderHeaderStats(); }
+renderHeaderStats(); updateModifiedBadge(); updateUndoBtn(); renderHistory(); updateCount();
+
+/* ============================================================
+   18. INITIAL STATE
+   ============================================================ */
+window.addEventListener('DOMContentLoaded', () => {
+  sqlEl.focus();
+  resultsEl.innerHTML = '<div class="empty-msg"><span class="big">🌾</span>Write a statement and press <b>Run</b> to see results.' +
+    '<br><small>Click a sample on the left, or hit ▶ beside any table to preview it.</small></div>';
+  if(dbModified) showStatus('💾 <b>Restored from your last session.</b> Data was previously modified — click <b>Reset</b> to start fresh.', 'write');
+});
+</script>
+</body>
+</html>
